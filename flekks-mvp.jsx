@@ -24,32 +24,37 @@ const Icons = {
   Layers: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
 };
 
-// Color palette
+// Color palette - White background with sophisticated grey and sage highlights
 const colors = {
-  sage: '#7C9A8E',
-  sageDark: '#5C7A6E',
-  sageLight: '#E8F0EC',
+  // Sage palette - muted, sophisticated
+  sage: '#8FA89A',
+  sageDark: '#6B8577',
+  sageLight: '#F2F7F4',
+  sageMuted: '#A8BDB2',
+  // Pure white base
   white: '#FFFFFF',
-  grey50: '#FAFAFA',
-  grey100: '#F5F5F5',
-  grey200: '#EEEEEE',
-  grey300: '#E0E0E0',
-  grey400: '#BDBDBD',
+  // Sophisticated grey scale
+  grey50: '#FCFCFC',
+  grey100: '#F8F8F8',
+  grey150: '#F3F3F3',
+  grey200: '#EBEBEB',
+  grey300: '#DEDEDE',
+  grey400: '#C4C4C4',
   grey500: '#9E9E9E',
   grey600: '#757575',
-  grey700: '#616161',
-  grey800: '#424242',
-  grey900: '#212121',
+  grey700: '#5C5C5C',
+  grey800: '#3D3D3D',
+  grey900: '#1A1A1A',
 };
 
-// Wellness image placeholders (gradient backgrounds simulating photos)
+// Wellness image placeholders - subtle grey and sage gradients
 const wellnessImages = [
-  'linear-gradient(135deg, #E8F0EC 0%, #D4E4DB 100%)',
-  'linear-gradient(135deg, #F5E6D3 0%, #E8D4C4 100%)',
-  'linear-gradient(135deg, #E3E8F0 0%, #D1D9E6 100%)',
-  'linear-gradient(135deg, #F0E8EC 0%, #E6D4DD 100%)',
-  'linear-gradient(135deg, #E8F0E8 0%, #D4E4D4 100%)',
-  'linear-gradient(135deg, #F0ECE8 0%, #E4DDD4 100%)',
+  'linear-gradient(145deg, #F2F7F4 0%, #E5EDE9 100%)', // sage tint
+  'linear-gradient(145deg, #F5F5F5 0%, #EBEBEB 100%)', // pure grey
+  'linear-gradient(145deg, #EFF4F1 0%, #E2EBE6 100%)', // sage muted
+  'linear-gradient(145deg, #F7F7F7 0%, #EDEDED 100%)', // light grey
+  'linear-gradient(145deg, #F4F8F6 0%, #E8F0EC 100%)', // sage light
+  'linear-gradient(145deg, #F3F3F3 0%, #E8E8E8 100%)', // warm grey
 ];
 
 export default function FlekksApp() {
@@ -119,7 +124,7 @@ export default function FlekksApp() {
       position: 'relative',
       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
       margin: '0 auto',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.12)',
     },
     dynamicIsland: {
       position: 'absolute',
@@ -138,14 +143,14 @@ export default function FlekksApp() {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      color: colors.grey900,
+      color: colors.grey800,
       fontSize: '14px',
       fontWeight: 600,
     },
     page: {
       height: 'calc(100% - 54px - 80px)',
       overflowY: 'auto',
-      background: colors.grey50,
+      background: colors.white,
     },
     tabBar: {
       position: 'absolute',
@@ -154,7 +159,7 @@ export default function FlekksApp() {
       right: 0,
       height: '80px',
       background: colors.white,
-      borderTop: `1px solid ${colors.grey200}`,
+      borderTop: `1px solid ${colors.grey150}`,
       display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'flex-start',
@@ -187,14 +192,14 @@ export default function FlekksApp() {
   const RoutineCard = ({ routine, size = 'normal' }) => (
     <button onClick={() => { setSelectedRoutine(routine); setActiveModal('routine'); }} style={{
       background: colors.white,
-      borderRadius: '16px',
+      borderRadius: '14px',
       overflow: 'hidden',
-      border: 'none',
+      border: `1px solid ${colors.grey150}`,
       cursor: 'pointer',
       textAlign: 'left',
       width: size === 'large' ? '100%' : size === 'small' ? '140px' : '280px',
       flexShrink: 0,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     }}>
       <div style={{
         height: size === 'large' ? '180px' : size === 'small' ? '100px' : '140px',
@@ -235,16 +240,16 @@ export default function FlekksApp() {
   const ProviderCard = ({ provider }) => (
     <button onClick={() => { setSelectedProvider(provider); setActiveModal('booking'); }} style={{
       background: colors.white,
-      borderRadius: '16px',
+      borderRadius: '14px',
       padding: '16px',
-      border: 'none',
+      border: `1px solid ${colors.grey150}`,
       cursor: 'pointer',
       textAlign: 'left',
       width: '100%',
       display: 'flex',
       gap: '14px',
       alignItems: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       marginBottom: '12px',
     }}>
       <div style={{
@@ -272,17 +277,17 @@ export default function FlekksApp() {
 
   const CategoryCard = ({ category }) => (
     <button onClick={() => { setSelectedCategory(category); setActiveModal('category'); }} style={{
-      background: category.image,
-      borderRadius: '16px',
-      padding: '20px 16px',
-      border: 'none',
+      background: colors.grey50,
+      borderRadius: '12px',
+      padding: '18px 16px',
+      border: `1px solid ${colors.grey150}`,
       cursor: 'pointer',
       textAlign: 'left',
       position: 'relative',
       overflow: 'hidden',
     }}>
       <h3 style={{ fontSize: '14px', fontWeight: 600, color: colors.grey800, margin: '0 0 4px' }}>{category.name}</h3>
-      <p style={{ fontSize: '12px', color: colors.grey600, margin: 0 }}>{category.count} routines</p>
+      <p style={{ fontSize: '12px', color: colors.grey500, margin: 0 }}>{category.count} routines</p>
     </button>
   );
 
@@ -294,20 +299,22 @@ export default function FlekksApp() {
         {/* Stacked effect */}
         <div style={{
           position: 'absolute', top: '4px', left: '4px', right: '-4px', bottom: '-4px',
-          background: colors.grey200, borderRadius: '12px', transform: 'rotate(3deg)',
+          background: colors.grey200, borderRadius: '10px', transform: 'rotate(3deg)',
         }} />
         <div style={{
           position: 'absolute', top: '2px', left: '2px', right: '-2px', bottom: '-2px',
-          background: colors.grey100, borderRadius: '12px', transform: 'rotate(1.5deg)',
+          background: colors.grey150, borderRadius: '10px', transform: 'rotate(1.5deg)',
         }} />
         <div style={{
           position: 'relative', width: '100%', height: '100%',
-          background: stack.thumbnail, borderRadius: '12px',
+          background: colors.grey50, borderRadius: '10px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `1px solid ${colors.grey150}`,
         }}>
           <div style={{
-            background: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: '6px',
-            fontSize: '11px', fontWeight: 700, color: colors.sage,
+            background: colors.white, padding: '4px 8px', borderRadius: '6px',
+            fontSize: '11px', fontWeight: 600, color: colors.sage,
+            border: `1px solid ${colors.grey150}`,
           }}>
             {stack.count} videos
           </div>
@@ -322,9 +329,9 @@ export default function FlekksApp() {
   const HomePage = () => (
     <div style={styles.page}>
       {/* Header */}
-      <div style={{ background: colors.white, padding: '20px', borderBottom: `1px solid ${colors.grey100}` }}>
-        <p style={{ fontSize: '14px', color: colors.grey500, margin: '0 0 4px' }}>Good morning</p>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: colors.grey900, margin: 0 }}>Find your flow</h1>
+      <div style={{ background: colors.white, padding: '20px 20px 16px' }}>
+        <p style={{ fontSize: '13px', color: colors.grey500, margin: '0 0 4px', letterSpacing: '0.3px' }}>Good morning</p>
+        <h1 style={{ fontSize: '26px', fontWeight: 700, color: colors.grey900, margin: 0, letterSpacing: '-0.5px' }}>Find your flow</h1>
       </div>
 
       {/* Featured */}
@@ -361,10 +368,11 @@ export default function FlekksApp() {
   const DiscoverPage = () => (
     <div style={styles.page}>
       {/* Search */}
-      <div style={{ padding: '20px', background: colors.white, borderBottom: `1px solid ${colors.grey100}` }}>
+      <div style={{ padding: '20px', background: colors.white }}>
         <div style={{
-          background: colors.grey100, borderRadius: '12px', padding: '12px 16px',
+          background: colors.grey50, borderRadius: '12px', padding: '12px 16px',
           display: 'flex', alignItems: 'center', gap: '10px',
+          border: `1px solid ${colors.grey150}`,
         }}>
           <span style={{ color: colors.grey400 }}><Icons.Search /></span>
           <input placeholder="Search routines or specialists..." style={{
@@ -401,23 +409,23 @@ export default function FlekksApp() {
   const ProfilePage = () => (
     <div style={styles.page}>
       {/* Profile Header */}
-      <div style={{ background: colors.white, padding: '20px', textAlign: 'center', borderBottom: `1px solid ${colors.grey100}` }}>
+      <div style={{ background: colors.white, padding: '24px 20px', textAlign: 'center' }}>
         <div style={{
           width: '88px', height: '88px', borderRadius: '50%',
-          background: colors.sageLight, margin: '0 auto 12px',
+          background: colors.sageLight, margin: '0 auto 14px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: `3px solid ${colors.sage}`,
+          border: `2px solid ${colors.sageMuted}`,
         }}>
           <span style={{ fontSize: '32px', fontWeight: 600, color: colors.sage }}>S</span>
         </div>
         <h1 style={{ fontSize: '20px', fontWeight: 700, color: colors.grey900, margin: '0 0 4px' }}>Sarah Mitchell</h1>
-        <p style={{ fontSize: '14px', color: colors.grey500, margin: 0 }}>Member since Jan 2024</p>
+        <p style={{ fontSize: '13px', color: colors.grey500, margin: 0 }}>Member since Jan 2024</p>
 
         {/* Stats */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '20px' }}>
           {[['47', 'Completed'], ['12', 'Saved'], ['8', 'Day Streak']].map(([val, label]) => (
             <div key={label}>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: colors.grey900 }}>{val}</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: colors.grey800 }}>{val}</div>
               <div style={{ fontSize: '12px', color: colors.grey500 }}>{label}</div>
             </div>
           ))}
@@ -425,7 +433,7 @@ export default function FlekksApp() {
       </div>
 
       {/* Tab Toggle */}
-      <div style={{ display: 'flex', background: colors.white, borderBottom: `1px solid ${colors.grey100}` }}>
+      <div style={{ display: 'flex', background: colors.white, borderTop: `1px solid ${colors.grey150}`, borderBottom: `1px solid ${colors.grey150}` }}>
         {[['progress', Icons.Grid, 'Progress'], ['saved', Icons.Bookmark, 'Saved']].map(([id, Icon, label]) => (
           <button key={id} onClick={() => setProfileTab(id)} style={{
             flex: 1, padding: '14px', background: 'none', border: 'none',
@@ -469,21 +477,21 @@ export default function FlekksApp() {
       )}
 
       {/* Settings */}
-      <div style={{ padding: '20px', borderTop: `8px solid ${colors.grey100}` }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, color: colors.grey500, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Settings</h3>
-        <div style={{ background: colors.white, borderRadius: '12px', overflow: 'hidden' }}>
+      <div style={{ padding: '20px', marginTop: '8px' }}>
+        <h3 style={{ fontSize: '12px', fontWeight: 600, color: colors.grey500, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Settings</h3>
+        <div style={{ background: colors.grey50, borderRadius: '12px', overflow: 'hidden', border: `1px solid ${colors.grey150}` }}>
           {[
             [Icons.Bell, 'Notifications'],
             [Icons.Award, 'Achievements'],
             [Icons.Settings, 'Preferences'],
           ].map(([Icon, label], i, arr) => (
             <button key={label} style={{
-              width: '100%', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px',
+              width: '100%', padding: '15px 16px', display: 'flex', alignItems: 'center', gap: '12px',
               background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-              borderBottom: i < arr.length - 1 ? `1px solid ${colors.grey100}` : 'none',
+              borderBottom: i < arr.length - 1 ? `1px solid ${colors.grey150}` : 'none',
             }}>
               <span style={{ color: colors.grey500 }}><Icon /></span>
-              <span style={{ flex: 1, fontSize: '15px', color: colors.grey800 }}>{label}</span>
+              <span style={{ flex: 1, fontSize: '15px', color: colors.grey700 }}>{label}</span>
               <span style={{ color: colors.grey300 }}><Icons.ChevronRight /></span>
             </button>
           ))}
@@ -553,23 +561,24 @@ export default function FlekksApp() {
             </p>
 
             {/* Target Areas */}
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: colors.grey800, margin: '0 0 12px' }}>Target Areas</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: colors.grey700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Target Areas</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
               {['Neck', 'Shoulders', 'Lower Back', 'Hips'].map(area => (
                 <span key={area} style={{
-                  background: colors.sageLight, color: colors.sageDark,
+                  background: colors.grey50, color: colors.grey700,
                   padding: '8px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
+                  border: `1px solid ${colors.grey200}`,
                 }}>{area}</span>
               ))}
             </div>
 
             {/* What You'll Do */}
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: colors.grey800, margin: '0 0 12px' }}>What You'll Do</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: colors.grey700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>What You'll Do</h3>
             <div style={{ marginBottom: '24px' }}>
               {['Gentle warm-up stretches', 'Targeted mobility work', 'Deep tissue release', 'Relaxation cool-down'].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <span style={{ color: colors.sage }}><Icons.Check /></span>
-                  <span style={{ fontSize: '14px', color: colors.grey700 }}>{item}</span>
+                  <span style={{ color: colors.sageMuted }}><Icons.Check /></span>
+                  <span style={{ fontSize: '14px', color: colors.grey600 }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -711,22 +720,23 @@ export default function FlekksApp() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
               {selectedProvider.specialties.map(s => (
                 <span key={s} style={{
-                  background: colors.grey100, color: colors.grey700,
+                  background: colors.grey50, color: colors.grey600,
                   padding: '6px 12px', borderRadius: '16px', fontSize: '12px', fontWeight: 500,
+                  border: `1px solid ${colors.grey150}`,
                 }}>{s}</span>
               ))}
             </div>
 
             {/* Time Slots */}
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: colors.grey800, margin: '0 0 12px' }}>Available Times</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: colors.grey700, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Available Times</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '24px' }}>
               {timeSlots.map(slot => (
                 <button key={slot.time + slot.date} onClick={() => setSelectedTimeSlot(slot.time)} style={{
-                  background: selectedTimeSlot === slot.time ? colors.sage : colors.grey50,
+                  background: selectedTimeSlot === slot.time ? colors.sage : colors.white,
                   border: `1px solid ${selectedTimeSlot === slot.time ? colors.sage : colors.grey200}`,
-                  borderRadius: '12px', padding: '14px 8px', cursor: 'pointer', textAlign: 'center',
+                  borderRadius: '10px', padding: '14px 8px', cursor: 'pointer', textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: selectedTimeSlot === slot.time ? colors.white : colors.grey800 }}>{slot.time}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: selectedTimeSlot === slot.time ? colors.white : colors.grey700 }}>{slot.time}</div>
                   <div style={{ fontSize: '11px', color: selectedTimeSlot === slot.time ? 'rgba(255,255,255,0.8)' : colors.grey500, marginTop: '2px' }}>{slot.date}</div>
                 </button>
               ))}
@@ -736,12 +746,13 @@ export default function FlekksApp() {
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '16px', background: colors.grey50, borderRadius: '12px', marginBottom: '24px',
+              border: `1px solid ${colors.grey150}`,
             }}>
               <div>
-                <div style={{ fontSize: '14px', color: colors.grey600 }}>Session Price</div>
+                <div style={{ fontSize: '14px', color: colors.grey700 }}>Session Price</div>
                 <div style={{ fontSize: '12px', color: colors.grey500 }}>45 minutes</div>
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: colors.sage }}>${selectedProvider.price}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: colors.grey800 }}>${selectedProvider.price}</div>
             </div>
 
             {/* CTA */}
