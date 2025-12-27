@@ -7,8 +7,8 @@ import Supabase
 
 enum SupabaseConfig {
     // TODO: Replace with your Supabase project credentials
-    static let url = URL(string: "https://YOUR_PROJECT_ID.supabase.co")!
-    static let anonKey = "YOUR_ANON_KEY"
+    static let url = URL(string: "https://gshddhkasfonhqypgewy.supabase.co")!
+    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzaGRkaGthc2ZvbmhxeXBnZXd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MzI3MjAsImV4cCI6MjA4MjQwODcyMH0.2dMXC74G5tx1osppGbviFc8iatpbFLJO9FtC04dbYs8"
 
     // Storage buckets
     static let videoBucket = "videos"
