@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TeamSelectionView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var dataService = DataService.shared
 
     var body: some View {
         ZStack {
@@ -24,25 +25,29 @@ struct TeamSelectionView: View {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
                         Text("YOUR MATCHES")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.accent)
+                            .font(FLEKKSFonts.labelSmall)
+                            .foregroundStyle(FLEKKSGradients.accentGradient)
                             .tracking(2)
 
                         Text("Choose your team")
-                            .font(.custom("Georgia", size: 32))
+                            .font(FLEKKSFonts.heading(32))
                             .foregroundColor(.textPrimary)
 
                         Text("Join a coach and train with others on the same path")
-                            .font(.system(size: 14))
+                            .font(FLEKKSFonts.body(14))
                             .foregroundColor(.textSecondary)
                     }
                     .padding(.bottom, 28)
 
                     // Team cards
                     VStack(spacing: 16) {
-                        ForEach(Team.allTeams) { team in
+                        ForEach(dataService.teams) { team in
                             TeamCard(team: team) {
                                 appState.selectTeam(team)
+                            } onCoachTap: {
+                                if let coachId = team.coach?.id {
+                                    appState.viewCoachProfile(coachId)
+                                }
                             }
                         }
                     }
@@ -51,12 +56,18 @@ struct TeamSelectionView: View {
                 .padding(.horizontal, 20)
             }
         }
+        .onAppear {
+            Task {
+                await dataService.fetchTeams()
+            }
+        }
     }
 }
 
 struct TeamCard: View {
     let team: Team
     let onTap: () -> Void
+    let onCoachTap: () -> Void
 
     var heroGradient: LinearGradient {
         switch team.heroGradient {
@@ -67,106 +78,130 @@ struct TeamCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 0) {
-                // Hero section
-                ZStack(alignment: .topLeading) {
-                    heroGradient
-                        .frame(height: 100)
+        VStack(spacing: 0) {
+            // Hero section
+            ZStack(alignment: .topLeading) {
+                heroGradient
+                    .frame(height: 100)
 
-                    HStack {
-                        // Live badge
-                        if team.isLive {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color.flekksGreen)
-                                    .frame(width: 6, height: 6)
-                                Text("LIVE")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.textPrimary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.6))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
+                // Glow effect
+                Circle()
+                    .fill(FLEKKSGradients.tealGlowSoft)
+                    .frame(width: 150, height: 150)
+                    .blur(radius: 40)
+                    .offset(x: 200, y: -30)
 
-                        Spacer()
-
-                        // Match percentage
-                        Text("\(team.matchPercentage)% MATCH")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.bgPrimary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .padding(12)
-                }
-
-                // Content
-                VStack(alignment: .leading, spacing: 14) {
-                    // Coach info
-                    HStack(spacing: 12) {
-                        ZStack {
+                HStack {
+                    // Live badge
+                    if team.isLive {
+                        HStack(spacing: 6) {
                             Circle()
-                                .fill(FLEKKSGradients.avatarGradient)
-                                .frame(width: 44, height: 44)
-
-                            Text(team.coach.avatarInitials)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.bgPrimary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(team.coach.name)
-                                .font(.system(size: 15, weight: .semibold))
+                                .fill(Color.flekksGreen)
+                                .frame(width: 6, height: 6)
+                            Text("LIVE")
+                                .font(FLEKKSFonts.labelSmall)
                                 .foregroundColor(.textPrimary)
-                            Text(team.coach.credential)
-                                .font(.system(size: 12))
-                                .foregroundColor(.textSecondary)
                         }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
 
-                    // Team name
-                    Text(team.name)
-                        .font(.custom("Georgia", size: 22))
-                        .foregroundColor(.textPrimary)
+                    Spacer()
 
-                    // Description
-                    Text(team.description)
-                        .font(.system(size: 14))
-                        .foregroundColor(.textSecondary)
-                        .lineSpacing(4)
-
-                    // Stats
-                    HStack(spacing: 16) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 11))
-                            Text("\(team.memberCount) members")
-                        }
-                        HStack(spacing: 4) {
-                            Image(systemName: "target")
-                                .font(.system(size: 11))
-                            Text(team.focus)
-                        }
-                    }
-                    .font(.system(size: 12))
-                    .foregroundColor(.textMuted)
+                    // Match percentage
+                    Text("\(team.matchPercentage)% MATCH")
+                        .font(FLEKKSFonts.labelSmall)
+                        .foregroundColor(.bgPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(FLEKKSGradients.buttonGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
             }
-            .background(Color.bgCard)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.border, lineWidth: 1)
-            )
+
+            // Content
+            VStack(alignment: .leading, spacing: 14) {
+                // Coach info - tappable
+                if let coach = team.coach {
+                    Button(action: onCoachTap) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(FLEKKSGradients.avatarGradient)
+                                    .frame(width: 44, height: 44)
+
+                                Text(coach.avatarInitials)
+                                    .font(FLEKKSFonts.labelMedium)
+                                    .foregroundColor(.bgPrimary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(coach.name)
+                                    .font(FLEKKSFonts.bodySemibold(15))
+                                    .foregroundColor(.textPrimary)
+                                Text(coach.credential)
+                                    .font(FLEKKSFonts.body(12))
+                                    .foregroundColor(.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.textMuted)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Team name
+                Text(team.name)
+                    .font(FLEKKSFonts.heading(22))
+                    .foregroundColor(.textPrimary)
+
+                // Description
+                Text(team.description)
+                    .font(FLEKKSFonts.body(14))
+                    .foregroundColor(.textSecondary)
+                    .lineSpacing(4)
+
+                // Stats
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(FLEKKSGradients.iconGradient)
+                        Text("\(team.memberCount) members")
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "target")
+                            .font(.system(size: 11))
+                            .foregroundStyle(FLEKKSGradients.iconGradient)
+                        Text(team.focus)
+                    }
+                }
+                .font(FLEKKSFonts.body(12))
+                .foregroundColor(.textMuted)
+
+                // Join button
+                Button(action: onTap) {
+                    Text("Join Team")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 8)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .buttonStyle(.plain)
+        .background(Color.bgCard)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
+        )
     }
 }
 
