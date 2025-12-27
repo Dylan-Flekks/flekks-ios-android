@@ -306,12 +306,141 @@ CREATE TRIGGER on_session_complete
     EXECUTE FUNCTION update_user_streak();
 
 -- ============================================
--- STORAGE BUCKETS (run separately in Storage settings)
+-- STORAGE BUCKETS & POLICIES
 -- ============================================
--- Create these buckets in Supabase Dashboard > Storage:
--- 1. videos (public or private based on your needs)
--- 2. thumbnails (public)
--- 3. avatars (public)
+-- Run these in Supabase Dashboard > Storage or via SQL
+
+-- Create buckets (do this in Dashboard first, then apply policies below)
+
+-- 1. AVATARS BUCKET (Public - displayed throughout app)
+-- Dashboard: Create bucket "avatars", set to PUBLIC
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'avatars',
+    'avatars',
+    TRUE,  -- Public bucket
+    2097152,  -- 2MB limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Avatars: Anyone can view, authenticated users can upload their own
+CREATE POLICY "Avatar images are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload their own avatar"
+ON storage.objects FOR INSERT
+WITH CHECK (
+    bucket_id = 'avatars'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+CREATE POLICY "Users can update their own avatar"
+ON storage.objects FOR UPDATE
+USING (
+    bucket_id = 'avatars'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+CREATE POLICY "Users can delete their own avatar"
+ON storage.objects FOR DELETE
+USING (
+    bucket_id = 'avatars'
+    AND auth.role() = 'authenticated'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- 2. THUMBNAILS BUCKET (Public - shown in session lists)
+-- Dashboard: Create bucket "thumbnails", set to PUBLIC
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'thumbnails',
+    'thumbnails',
+    TRUE,  -- Public bucket
+    1048576,  -- 1MB limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Thumbnails: Anyone can view, only coaches can upload
+CREATE POLICY "Thumbnails are publicly accessible"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'thumbnails');
+
+CREATE POLICY "Coaches can upload thumbnails"
+ON storage.objects FOR INSERT
+WITH CHECK (
+    bucket_id = 'thumbnails'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
+
+CREATE POLICY "Coaches can manage thumbnails"
+ON storage.objects FOR UPDATE
+USING (
+    bucket_id = 'thumbnails'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
+
+CREATE POLICY "Coaches can delete thumbnails"
+ON storage.objects FOR DELETE
+USING (
+    bucket_id = 'thumbnails'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
+
+-- 3. VIDEOS BUCKET (Private - paid content, use signed URLs)
+-- Dashboard: Create bucket "videos", set to PRIVATE
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'videos',
+    'videos',
+    FALSE,  -- PRIVATE bucket - requires signed URLs
+    524288000,  -- 500MB limit
+    ARRAY['video/mp4', 'video/quicktime', 'video/x-m4v']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Videos: Only team members can view (via signed URLs in app)
+CREATE POLICY "Team members can view videos"
+ON storage.objects FOR SELECT
+USING (
+    bucket_id = 'videos'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (
+        SELECT tm.user_id FROM team_members tm
+        JOIN programs p ON p.team_id = tm.team_id
+        JOIN sessions s ON s.program_id = p.id
+        WHERE s.video_url LIKE '%' || name || '%'
+    )
+);
+
+-- Only coaches can upload videos
+CREATE POLICY "Coaches can upload videos"
+ON storage.objects FOR INSERT
+WITH CHECK (
+    bucket_id = 'videos'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
+
+CREATE POLICY "Coaches can manage videos"
+ON storage.objects FOR UPDATE
+USING (
+    bucket_id = 'videos'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
+
+CREATE POLICY "Coaches can delete videos"
+ON storage.objects FOR DELETE
+USING (
+    bucket_id = 'videos'
+    AND auth.role() = 'authenticated'
+    AND auth.uid() IN (SELECT user_id FROM coaches)
+);
 
 -- ============================================
 -- REALTIME (Enable in Dashboard)

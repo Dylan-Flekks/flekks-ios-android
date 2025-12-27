@@ -1,6 +1,44 @@
 import Foundation
 import AVFoundation
 import Supabase
+#if canImport(UIKit)
+import UIKit
+#endif
+
+// MARK: - File Size Limits
+enum StorageLimits {
+    static let maxVideoSize: Int64 = 500 * 1024 * 1024      // 500 MB
+    static let maxThumbnailSize: Int64 = 1 * 1024 * 1024    // 1 MB
+    static let maxAvatarSize: Int64 = 2 * 1024 * 1024       // 2 MB
+
+    static let recommendedVideoSize: Int64 = 200 * 1024 * 1024  // 200 MB
+    static let recommendedThumbnailSize: Int64 = 300 * 1024     // 300 KB
+    static let recommendedAvatarSize: Int64 = 200 * 1024        // 200 KB
+
+    static let allowedVideoTypes = ["mp4", "mov", "m4v"]
+    static let allowedImageTypes = ["jpg", "jpeg", "png", "webp"]
+}
+
+// MARK: - Upload Errors
+enum UploadError: LocalizedError {
+    case fileTooLarge(maxSize: String, actualSize: String)
+    case invalidFileType(allowed: [String])
+    case fileNotFound
+    case compressionFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .fileTooLarge(let maxSize, let actualSize):
+            return "File is too large (\(actualSize)). Maximum size is \(maxSize)."
+        case .invalidFileType(let allowed):
+            return "Invalid file type. Allowed types: \(allowed.joined(separator: ", "))"
+        case .fileNotFound:
+            return "File not found."
+        case .compressionFailed:
+            return "Failed to compress image."
+        }
+    }
+}
 
 // MARK: - Video Service
 // Handles video upload, streaming, and playback
@@ -14,13 +52,54 @@ class VideoService: ObservableObject {
     @Published var isUploading = false
     @Published var errorMessage: String?
 
+    // MARK: - Validate File Before Upload
+    func validateVideo(at url: URL) throws {
+        // Check file exists
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw UploadError.fileNotFound
+        }
+
+        // Check file extension
+        let ext = url.pathExtension.lowercased()
+        guard StorageLimits.allowedVideoTypes.contains(ext) else {
+            throw UploadError.invalidFileType(allowed: StorageLimits.allowedVideoTypes)
+        }
+
+        // Check file size
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        let fileSize = attributes[.size] as? Int64 ?? 0
+
+        if fileSize > StorageLimits.maxVideoSize {
+            throw UploadError.fileTooLarge(
+                maxSize: formatBytes(StorageLimits.maxVideoSize),
+                actualSize: formatBytes(fileSize)
+            )
+        }
+
+        // Warn if larger than recommended (but still allow)
+        if fileSize > StorageLimits.recommendedVideoSize {
+            print("⚠️ Video is larger than recommended (\(formatBytes(fileSize))). Consider compressing.")
+        }
+    }
+
+    func validateImage(data: Data, type: String = "image") throws {
+        let maxSize: Int64 = type == "avatar" ? StorageLimits.maxAvatarSize : StorageLimits.maxThumbnailSize
+
+        if Int64(data.count) > maxSize {
+            throw UploadError.fileTooLarge(
+                maxSize: formatBytes(maxSize),
+                actualSize: formatBytes(Int64(data.count))
+            )
+        }
+    }
+
     // MARK: - Upload Video (for coaches)
     /// Uploads a video file to Supabase Storage
     /// - Parameters:
     ///   - fileURL: Local file URL of the video
     ///   - sessionId: The session this video belongs to
     ///   - onProgress: Progress callback (0.0 - 1.0)
-    /// - Returns: The public URL of the uploaded video
+    /// - Returns: The signed URL of the uploaded video (private bucket)
     func uploadVideo(
         fileURL: URL,
         sessionId: UUID,
@@ -33,6 +112,9 @@ class VideoService: ObservableObject {
         defer {
             isUploading = false
         }
+
+        // Validate before upload
+        try validateVideo(at: fileURL)
 
         do {
             let fileName = "\(sessionId.uuidString)/video.mp4"
@@ -105,7 +187,6 @@ class VideoService: ObservableObject {
         do {
             let cgImage = try await imageGenerator.image(at: time).image
             #if canImport(UIKit)
-            import UIKit
             let uiImage = UIImage(cgImage: cgImage)
             return uiImage.jpegData(compressionQuality: 0.8)
             #else
@@ -159,6 +240,66 @@ class VideoService: ObservableObject {
             return nil
         }
     }
+
+    // MARK: - Upload Avatar
+    func uploadAvatar(
+        imageData: Data,
+        userId: UUID
+    ) async throws -> String {
+        // Validate before upload
+        try validateImage(data: imageData, type: "avatar")
+
+        do {
+            let fileName = "\(userId.uuidString)/avatar.jpg"
+
+            try await supabase.client.storage
+                .from(SupabaseConfig.avatarBucket)
+                .upload(
+                    path: fileName,
+                    file: imageData,
+                    options: FileOptions(
+                        contentType: "image/jpeg",
+                        upsert: true
+                    )
+                )
+
+            let publicURL = try supabase.client.storage
+                .from(SupabaseConfig.avatarBucket)
+                .getPublicURL(path: fileName)
+
+            return publicURL.absoluteString
+
+        } catch {
+            throw error
+        }
+    }
+
+    // MARK: - Compress Image
+    func compressImage(_ imageData: Data, maxSize: Int64, quality: CGFloat = 0.8) -> Data? {
+        #if canImport(UIKit)
+        guard let image = UIImage(data: imageData) else { return nil }
+
+        var compressionQuality = quality
+        var compressedData = image.jpegData(compressionQuality: compressionQuality)
+
+        // Iteratively reduce quality until under max size
+        while let data = compressedData, Int64(data.count) > maxSize && compressionQuality > 0.1 {
+            compressionQuality -= 0.1
+            compressedData = image.jpegData(compressionQuality: compressionQuality)
+        }
+
+        return compressedData
+        #else
+        return imageData
+        #endif
+    }
+}
+
+// MARK: - Helper Functions
+func formatBytes(_ bytes: Int64) -> String {
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .file
+    return formatter.string(fromByteCount: bytes)
 }
 
 // MARK: - Video Metadata
