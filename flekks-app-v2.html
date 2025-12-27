@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FLĒKKS | Flexibility Redefined</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-card: #141414;
+      --bg-elevated: #1c1c1c;
+      --bg-input: #242424;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1a1;
+      --text-muted: #525252;
+      --accent: #00d4aa;
+      --accent-secondary: #00b894;
+      --accent-glow: rgba(0, 212, 170, 0.15);
+      --accent-glow-strong: rgba(0, 212, 170, 0.25);
+      --border: rgba(255,255,255,0.06);
+      --border-light: rgba(255,255,255,0.1);
+      --orange: #ff8c42;
+      --red: #ff4757;
+      --green: #00d4aa;
+    }
+
+    html, body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .phone-frame {
+      max-width: 390px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* ===== COMMON COMPONENTS ===== */
+    .btn {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-primary);
+      padding: 16px 32px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-primary:active {
+      background: var(--accent-secondary);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      padding: 16px 24px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 12px;
+    }
+
+    .btn-ghost:active {
+      color: var(--accent);
+    }
+
+    /* ===== SPLASH SCREEN ===== */
+    .splash {
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-primary);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .splash::before {
+      content: '';
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--accent-glow-strong) 0%, transparent 60%);
+      filter: blur(80px);
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    .splash-logo {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 4rem;
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+      z-index: 1;
+      color: var(--text-primary);
+    }
+
+    .splash-tagline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 100px;
+      z-index: 1;
+    }
+
+    .splash-cta {
+      width: 100%;
+      max-width: 300px;
+      z-index: 1;
+    }
+
+    .splash-login {
+      margin-top: 20px;
+      z-index: 1;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .splash-login span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ===== QUIZ SCREEN ===== */
+    .quiz {
+      padding: 60px 24px 32px;
+      background: var(--bg-primary);
+    }
+
+    .quiz-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .quiz-back {
+      font-size: 1.5rem;
+      padding: 8px;
+      margin-left: -8px;
+      margin-right: 8px;
+    }
+
+    .quiz-progress {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+    }
+
+    .quiz-progress-bar {
+      height: 3px;
+      flex: 1;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      transition: background 0.3s ease;
+    }
+
+    .quiz-progress-bar.filled {
+      background: var(--accent);
+    }
+
+    .quiz-step {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-left: 16px;
+      font-weight: 500;
+    }
+
+    .quiz-question {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 400;
+      line-height: 1.2;
+      margin-bottom: 36px;
+      letter-spacing: -0.02em;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .quiz-option {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .quiz-option:active {
+      transform: scale(0.98);
+    }
+
+    .quiz-option.selected {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .quiz-option-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-elevated);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+
+    .quiz-option.selected .quiz-option-icon {
+      background: var(--accent);
+    }
+
+    .quiz-option-text {
+      flex: 1;
+    }
+
+    .quiz-option-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+
+    .quiz-option-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .quiz-option-check {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .quiz-option.selected .quiz-option-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .quiz-footer {
+      margin-top: 24px;
+    }
+
+    .quiz-btn {
+      width: 100%;
+    }
+
+    .quiz-btn:disabled {
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* ===== TEAMS SCREEN ===== */
+    .teams {
+      padding: 60px 20px 40px;
+      background: var(--bg-primary);
+      min-height: 100vh;
+    }
+
+    .teams-back {
+      margin-bottom: 16px;
+    }
+
+    .teams-header {
+      margin-bottom: 28px;
+    }
+
+    .teams-eyebrow {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .teams-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    .teams-subtitle {
+      color: var(--text-secondary);
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+
+    .team-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .team-card:active {
+      transform: scale(0.98);
+      border-color: var(--accent);
+    }
+
+    .team-card-hero {
+      height: 100px;
+      background: linear-gradient(135deg, #0d2818 0%, #0a0a0a 100%);
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      padding: 14px;
+    }
+
+    .team-card-hero.purple {
+      background: linear-gradient(135deg, #1a0d2e 0%, #0a0a0a 100%);
+    }
+
+    .team-card-hero.blue {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0a0a0a 100%);
+    }
+
+    .team-card-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(12px);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .team-card-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .team-card-match {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent);
+      color: var(--bg-primary);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .team-card-content {
+      padding: 18px 20px 22px;
+    }
+
+    .team-card-coach {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .team-card-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--bg-primary);
+    }
+
+    .team-card-coach-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .team-card-coach-cred {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .team-card-name {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+
+    .team-card-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .team-card-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .team-card-stats span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ===== HOME SCREEN ===== */
+    .home {
+      padding: 60px 20px 100px;
+      background: var(--bg-primary);
+    }
+
+    .home-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+
+    .home-greeting {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .home-name {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .home-streak {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .home-streak:active {
+      transform: scale(0.95);
+      border-color: var(--orange);
+    }
+
+    .home-streak-num {
+      font-weight: 700;
+      color: var(--orange);
+      font-size: 1.1rem;
+    }
+
+    .home-streak-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .today-session {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .today-session-hero {
+      height: 120px;
+      background: linear-gradient(135deg, #0d2818 0%, #0a0a0a 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .today-session-hero::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, var(--accent-glow-strong) 0%, transparent 70%);
+      filter: blur(50px);
+    }
+
+    .today-session-icon {
+      font-size: 3rem;
+      z-index: 1;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .today-session-content {
+      padding: 20px 22px 24px;
+    }
+
+    .today-session-eyebrow {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .today-session-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .today-session-coach {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .today-session-meta {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .today-session-stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      background: var(--bg-elevated);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .today-session-btn {
+      width: 100%;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .section-link {
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 8px;
+      margin: -8px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .section-link:active {
+      background: var(--accent-glow);
+    }
+
+    .week-days {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+
+    .week-day {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 4px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .week-day:active {
+      transform: scale(0.95);
+    }
+
+    .week-day.today {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .week-day.completed .week-day-status {
+      color: var(--accent);
+    }
+
+    .week-day-name {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .week-day-num {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .week-day-status {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      height: 14px;
+    }
+
+    .team-chat-preview {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .team-chat-preview:active {
+      transform: scale(0.98);
+      border-color: var(--accent);
+    }
+
+    .team-chat-avatars {
+      display: flex;
+    }
+
+    .team-chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      border: 2px solid var(--bg-card);
+      margin-left: -10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--bg-primary);
+    }
+
+    .team-chat-avatar:first-child {
+      margin-left: 0;
+    }
+
+    .team-chat-avatar.more {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+    }
+
+    .team-chat-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .team-chat-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .team-chat-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .team-chat-badge {
+      background: var(--red);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 390px;
+      background: rgba(10, 10, 10, 0.92);
+      backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      padding: 8px 12px 32px;
+      display: flex;
+      justify-content: space-around;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 8px 16px;
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      border-radius: 10px;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item:active {
+      background: var(--bg-elevated);
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+    }
+
+    .nav-icon {
+      font-size: 1.3rem;
+    }
+
+    /* ===== PROGRAM SCREEN ===== */
+    .program {
+      padding: 0 0 100px;
+      background: var(--bg-primary);
+      min-height: 100vh;
+    }
+
+    .program-hero {
+      height: 200px;
+      background: linear-gradient(135deg, #0d2818 0%, #0a0a0a 100%);
+      padding: 60px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+    }
+
+    .program-hero::before {
+      content: '';
+      position: absolute;
+      top: 40%;
+      right: 20%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(60px);
+    }
+
+    .program-hero-eyebrow {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .program-hero-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .program-hero-coach {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .program-content {
+      padding: 24px 20px;
+    }
+
+    .program-progress-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+
+    .program-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .program-progress-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .program-progress-pct {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    .program-progress-bar {
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .program-progress-fill {
+      height: 100%;
+      width: 28%;
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    .program-progress-stats {
+      display: flex;
+      gap: 20px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .program-week {
+      margin-bottom: 24px;
+    }
+
+    .program-week-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .program-week-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .program-week-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 5px 12px;
+      border-radius: 100px;
+    }
+
+    .program-day {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .program-day:active {
+      transform: scale(0.98);
+      border-color: var(--accent);
+    }
+
+    .program-day.completed {
+      opacity: 0.5;
+    }
+
+    .program-day-check {
+      width: 26px;
+      height: 26px;
+      border: 2px solid var(--border-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: transparent;
+      flex-shrink: 0;
+    }
+
+    .program-day.completed .program-day-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    .program-day-info {
+      flex: 1;
+    }
+
+    .program-day-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+
+    .program-day-meta {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .program-day-duration {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    /* ===== TEAM CHAT SCREEN ===== */
+    .team-screen {
+      padding: 0 0 100px;
+      background: var(--bg-primary);
+      min-height: 100vh;
+    }
+
+    .team-header {
+      padding: 60px 20px 20px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .team-header-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .team-header-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--bg-primary);
+    }
+
+    .team-header-info {
+      flex: 1;
+    }
+
+    .team-header-name {
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+
+    .team-header-members {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .team-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 0;
+    }
+
+    .team-tab {
+      flex: 1;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .team-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .team-chat {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .chat-avatar.coach {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      color: var(--bg-primary);
+    }
+
+    .chat-bubble {
+      background: var(--bg-card);
+      border-radius: 18px;
+      border-top-left-radius: 4px;
+      padding: 12px 16px;
+      max-width: 280px;
+    }
+
+    .chat-name {
+      font-weight: 600;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chat-name-badge {
+      background: var(--accent);
+      color: var(--bg-primary);
+      font-size: 0.55rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .chat-text {
+      font-size: 0.88rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+
+    .chat-time {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .chat-input-container {
+      position: fixed;
+      bottom: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 390px;
+      padding: 12px 20px;
+      background: var(--bg-primary);
+      border-top: 1px solid var(--border);
+    }
+
+    .chat-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 14px 20px;
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      outline: none;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .chat-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ===== PROGRESS SCREEN ===== */
+    .progress-screen {
+      padding: 0 0 100px;
+      background: var(--bg-primary);
+      min-height: 100vh;
+    }
+
+    .progress-header {
+      padding: 60px 24px 24px;
+    }
+
+    .progress-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 400;
+    }
+
+    .progress-content {
+      padding: 0 20px;
+    }
+
+    .progress-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+
+    .progress-card-title {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .progress-card-value {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 2.75rem;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .progress-card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .progress-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .progress-grid .progress-card {
+      margin-bottom: 0;
+    }
+
+    .progress-grid .progress-card-value {
+      font-size: 2rem;
+    }
+
+    .badges-section {
+      margin-top: 28px;
+    }
+
+    .badges-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+
+    .badges-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .badge-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .badge-item:active {
+      transform: scale(0.95);
+    }
+
+    .badge-item.locked {
+      opacity: 0.35;
+    }
+
+    .badge-icon {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+
+    .badge-name {
+      font-size: 0.62rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ===== PROFILE SCREEN ===== */
+    .profile {
+      padding: 0 0 100px;
+      background: var(--bg-primary);
+      min-height: 100vh;
+    }
+
+    .profile-header {
+      padding: 60px 24px 28px;
+      text-align: center;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .profile-avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--bg-primary);
+      margin: 0 auto 14px;
+    }
+
+    .profile-name {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .profile-joined {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .profile-stats {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .profile-stat {
+      text-align: center;
+    }
+
+    .profile-stat-value {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .profile-stat-label {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .profile-content {
+      padding: 24px 20px;
+    }
+
+    .profile-section-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    .profile-section-title:first-child {
+      margin-top: 0;
+    }
+
+    .profile-menu-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .profile-menu-item:active {
+      transform: scale(0.98);
+      border-color: var(--accent);
+    }
+
+    .profile-menu-icon {
+      font-size: 1.2rem;
+    }
+
+    .profile-menu-text {
+      flex: 1;
+      font-size: 0.92rem;
+    }
+
+    .profile-menu-arrow {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
+    /* ===== SESSION SCREEN ===== */
+    .session {
+      min-height: 100vh;
+      background: var(--bg-primary);
+    }
+
+    .session-video {
+      height: 45vh;
+      background: linear-gradient(180deg, #0d2818 0%, #0a0a0a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .session-video::before {
+      content: '';
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, var(--accent-glow-strong) 0%, transparent 60%);
+      filter: blur(60px);
+      animation: breathe 5s ease-in-out infinite;
+    }
+
+    .session-close {
+      position: absolute;
+      top: 54px;
+      left: 20px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+    }
+
+    .session-video-icon {
+      font-size: 5rem;
+      z-index: 1;
+      animation: float 5s ease-in-out infinite;
+    }
+
+    .session-content {
+      padding: 28px 24px;
+    }
+
+    .session-eyebrow {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .session-movement {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.65rem;
+      font-weight: 400;
+      margin-bottom: 10px;
+    }
+
+    .session-cue {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: 28px;
+      line-height: 1.55;
+    }
+
+    .session-timer {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .session-timer-display {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 4rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: var(--accent);
+    }
+
+    .session-timer-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-top: 4px;
+    }
+
+    .session-progress {
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+
+    .session-progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .session-controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    .session-btn {
+      flex: 1;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+
+    <!-- SPLASH -->
+    <div class="screen splash active" id="splash">
+      <h1 class="splash-logo">Flēkks</h1>
+      <p class="splash-tagline">Flexibility Redefined</p>
+      <button class="btn btn-primary splash-cta" onclick="showScreen('quiz')">Start Free Trial</button>
+      <button class="btn btn-ghost splash-login" onclick="goHome()">Already a member? <span>Log in</span></button>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="screen quiz" id="quiz">
+      <div class="quiz-header">
+        <button class="btn btn-ghost quiz-back" onclick="prevQuestion()">‹</button>
+        <div class="quiz-progress">
+          <div class="quiz-progress-bar filled" id="prog1"></div>
+          <div class="quiz-progress-bar" id="prog2"></div>
+          <div class="quiz-progress-bar" id="prog3"></div>
+          <div class="quiz-progress-bar" id="prog4"></div>
+        </div>
+        <span class="quiz-step" id="quizStep">1/4</span>
+      </div>
+      
+      <h1 class="quiz-question" id="quizQuestion">What's your primary goal?</h1>
+      
+      <div class="quiz-options" id="quizOptions"></div>
+      
+      <div class="quiz-footer">
+        <button class="btn btn-primary quiz-btn" id="quizBtn" onclick="nextQuestion()" disabled>Continue</button>
+      </div>
+    </div>
+
+    <!-- TEAMS -->
+    <div class="screen teams" id="teams">
+      <button class="btn btn-ghost teams-back" onclick="showScreen('quiz')">‹ Back</button>
+      
+      <div class="teams-header">
+        <p class="teams-eyebrow">Your Matches</p>
+        <h1 class="teams-title">Choose Your Team</h1>
+        <p class="teams-subtitle">Join a coach. Follow the program. Get results.</p>
+      </div>
+
+      <div class="team-card" onclick="goHome()">
+        <div class="team-card-hero">
+          <div class="team-card-badge"><div class="team-card-badge-dot"></div>Starting Monday</div>
+          <div class="team-card-match">96% Match</div>
+        </div>
+        <div class="team-card-content">
+          <div class="team-card-coach">
+            <div class="team-card-avatar">RK</div>
+            <div>
+              <div class="team-card-coach-name">Dr. Rachel Kim</div>
+              <div class="team-card-coach-cred">DPT, CSCS • 12 years</div>
+            </div>
+          </div>
+          <h3 class="team-card-name">Desk Reset</h3>
+          <p class="team-card-desc">15-minute daily flows to reverse sitting damage. Perfect for busy professionals.</p>
+          <div class="team-card-stats">
+            <span>⏱ 15 min</span><span>📅 5x/week</span><span>👥 2.4k members</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="team-card" onclick="goHome()">
+        <div class="team-card-hero purple">
+          <div class="team-card-badge"><div class="team-card-badge-dot"></div>Open Now</div>
+        </div>
+        <div class="team-card-content">
+          <div class="team-card-coach">
+            <div class="team-card-avatar">MJ</div>
+            <div>
+              <div class="team-card-coach-name">Marcus Johnson</div>
+              <div class="team-card-coach-cred">PT, FRC • Sports Mobility</div>
+            </div>
+          </div>
+          <h3 class="team-card-name">Lifter's Mobility</h3>
+          <p class="team-card-desc">Unlock your squat, deadlift, and overhead. Mobility that transfers to the barbell.</p>
+          <div class="team-card-stats">
+            <span>⏱ 20 min</span><span>📅 4x/week</span><span>👥 1.8k members</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="team-card" onclick="goHome()">
+        <div class="team-card-hero blue">
+          <div class="team-card-badge"><div class="team-card-badge-dot"></div>Open Now</div>
+        </div>
+        <div class="team-card-content">
+          <div class="team-card-coach">
+            <div class="team-card-avatar">SR</div>
+            <div>
+              <div class="team-card-coach-name">Sofia Reyes</div>
+              <div class="team-card-coach-cred">DPT • Flexibility Specialist</div>
+            </div>
+          </div>
+          <h3 class="team-card-name">Full Splits Journey</h3>
+          <p class="team-card-desc">A progressive 12-week program to achieve your front and middle splits safely.</p>
+          <div class="team-card-stats">
+            <span>⏱ 25 min</span><span>📅 6x/week</span><span>👥 890 members</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen home" id="home">
+      <div class="home-header">
+        <div>
+          <p class="home-greeting">Good morning</p>
+          <h1 class="home-name">Dylan</h1>
+        </div>
+        <div class="home-streak" onclick="navigateTo('progress')">
+          <span>🔥</span>
+          <span class="home-streak-num">7</span>
+          <span class="home-streak-label">day streak</span>
+        </div>
+      </div>
+
+      <div class="today-session">
+        <div class="today-session-hero">
+          <span class="today-session-icon">🧘</span>
+        </div>
+        <div class="today-session-content">
+          <p class="today-session-eyebrow">Today's Session</p>
+          <h2 class="today-session-title">Hip Opener Series</h2>
+          <p class="today-session-coach">with Dr. Rachel Kim</p>
+          <div class="today-session-meta">
+            <span class="today-session-stat">⏱ 15 min</span>
+            <span class="today-session-stat">🎯 Hips & Low Back</span>
+            <span class="today-session-stat">📊 Day 12</span>
+          </div>
+          <button class="btn btn-primary today-session-btn" onclick="showScreen('session')">▶ Start Session</button>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">This Week</h2>
+        <span class="section-link" onclick="navigateTo('program')">View program</span>
+      </div>
+      
+      <div class="week-days">
+        <div class="week-day completed" onclick="toggleDay(this)"><div class="week-day-name">Mon</div><div class="week-day-num">23</div><div class="week-day-status">✓</div></div>
+        <div class="week-day completed" onclick="toggleDay(this)"><div class="week-day-name">Tue</div><div class="week-day-num">24</div><div class="week-day-status">✓</div></div>
+        <div class="week-day completed" onclick="toggleDay(this)"><div class="week-day-name">Wed</div><div class="week-day-num">25</div><div class="week-day-status">✓</div></div>
+        <div class="week-day completed" onclick="toggleDay(this)"><div class="week-day-name">Thu</div><div class="week-day-num">26</div><div class="week-day-status">✓</div></div>
+        <div class="week-day today"><div class="week-day-name">Fri</div><div class="week-day-num">27</div><div class="week-day-status"></div></div>
+        <div class="week-day" onclick="toggleDay(this)"><div class="week-day-name">Sat</div><div class="week-day-num">28</div><div class="week-day-status"></div></div>
+        <div class="week-day" onclick="toggleDay(this)"><div class="week-day-name">Sun</div><div class="week-day-num">29</div><div class="week-day-status"></div></div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">Team Chat</h2>
+        <span class="section-link" onclick="navigateTo('team')">Open</span>
+      </div>
+      
+      <div class="team-chat-preview" onclick="navigateTo('team')">
+        <div class="team-chat-avatars">
+          <div class="team-chat-avatar">JM</div>
+          <div class="team-chat-avatar">AL</div>
+          <div class="team-chat-avatar">KT</div>
+          <div class="team-chat-avatar more">+24</div>
+        </div>
+        <div class="team-chat-info">
+          <div class="team-chat-title">Desk Reset Team</div>
+          <div class="team-chat-subtitle">Sarah: Just finished today's flow! 🔥</div>
+        </div>
+        <div class="team-chat-badge">8</div>
+      </div>
+
+      <nav class="bottom-nav" id="homeNav">
+        <button class="nav-item active" onclick="navigateTo('home')"><span class="nav-icon">🏠</span><span>Today</span></button>
+        <button class="nav-item" onclick="navigateTo('program')"><span class="nav-icon">📅</span><span>Program</span></button>
+        <button class="nav-item" onclick="navigateTo('team')"><span class="nav-icon">💬</span><span>Team</span></button>
+        <button class="nav-item" onclick="navigateTo('progress')"><span class="nav-icon">📈</span><span>Progress</span></button>
+        <button class="nav-item" onclick="navigateTo('profile')"><span class="nav-icon">👤</span><span>Profile</span></button>
+      </nav>
+    </div>
+
+    <!-- PROGRAM -->
+    <div class="screen program" id="program">
+      <div class="program-hero">
+        <p class="program-hero-eyebrow">Current Program</p>
+        <h1 class="program-hero-title">Desk Reset</h1>
+        <p class="program-hero-coach">with Dr. Rachel Kim</p>
+      </div>
+
+      <div class="program-content">
+        <div class="program-progress-card">
+          <div class="program-progress-header">
+            <span class="program-progress-title">Overall Progress</span>
+            <span class="program-progress-pct">28%</span>
+          </div>
+          <div class="program-progress-bar"><div class="program-progress-fill"></div></div>
+          <div class="program-progress-stats">
+            <span>Week 2 of 6</span>
+            <span>•</span>
+            <span>12 sessions completed</span>
+          </div>
+        </div>
+
+        <div class="program-week">
+          <div class="program-week-header">
+            <span class="program-week-title">Week 2</span>
+            <span class="program-week-status">Current</span>
+          </div>
+          <div class="program-day completed" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 1: Hip Foundations</div>
+              <div class="program-day-meta">Hip flexors & glutes</div>
+            </div>
+            <div class="program-day-duration">15 min</div>
+          </div>
+          <div class="program-day completed" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 2: Spine Mobility</div>
+              <div class="program-day-meta">Thoracic & lumbar</div>
+            </div>
+            <div class="program-day-duration">15 min</div>
+          </div>
+          <div class="program-day completed" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 3: Shoulder Reset</div>
+              <div class="program-day-meta">Rotator cuff & thoracic</div>
+            </div>
+            <div class="program-day-duration">15 min</div>
+          </div>
+          <div class="program-day completed" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 4: Lower Body Flow</div>
+              <div class="program-day-meta">Hamstrings & calves</div>
+            </div>
+            <div class="program-day-duration">15 min</div>
+          </div>
+          <div class="program-day" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 5: Hip Opener Series</div>
+              <div class="program-day-meta">Deep hip stretches</div>
+            </div>
+            <div class="program-day-duration">15 min</div>
+          </div>
+        </div>
+
+        <div class="program-week">
+          <div class="program-week-header">
+            <span class="program-week-title">Week 3</span>
+          </div>
+          <div class="program-day" onclick="showScreen('session')">
+            <div class="program-day-check">✓</div>
+            <div class="program-day-info">
+              <div class="program-day-title">Day 1: Progressive Hips</div>
+              <div class="program-day-meta">Building on week 2</div>
+            </div>
+            <div class="program-day-duration">18 min</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" onclick="navigateTo('home')"><span class="nav-icon">🏠</span><span>Today</span></button>
+        <button class="nav-item active" onclick="navigateTo('program')"><span class="nav-icon">📅</span><span>Program</span></button>
+        <button class="nav-item" onclick="navigateTo('team')"><span class="nav-icon">💬</span><span>Team</span></button>
+        <button class="nav-item" onclick="navigateTo('progress')"><span class="nav-icon">📈</span><span>Progress</span></button>
+        <button class="nav-item" onclick="navigateTo('profile')"><span class="nav-icon">👤</span><span>Profile</span></button>
+      </nav>
+    </div>
+
+    <!-- TEAM -->
+    <div class="screen team-screen" id="team">
+      <div class="team-header">
+        <div class="team-header-top">
+          <div class="team-header-avatar">DR</div>
+          <div class="team-header-info">
+            <div class="team-header-name">Desk Reset Team</div>
+            <div class="team-header-members">2,847 members • 142 online</div>
+          </div>
+        </div>
+        <div class="team-tabs">
+          <button class="team-tab active" onclick="setTeamTab(this, 'chat')">Chat</button>
+          <button class="team-tab" onclick="setTeamTab(this, 'info')">About</button>
+        </div>
+      </div>
+
+      <div class="team-chat" id="teamChatContent">
+        <div class="chat-message">
+          <div class="chat-avatar coach">RK</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Dr. Rachel Kim <span class="chat-name-badge">Coach</span></div>
+            <div class="chat-text">Good morning team! 🌅 Today's hip opener series is one of my favorites. Focus on your breath and let gravity do the work. You've got this!</div>
+            <div class="chat-time">8:02 AM</div>
+          </div>
+        </div>
+        <div class="chat-message">
+          <div class="chat-avatar">SM</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Sarah M.</div>
+            <div class="chat-text">Just finished today's flow! 🔥 My hips feel amazing. That 90/90 stretch is becoming my favorite.</div>
+            <div class="chat-time">9:15 AM</div>
+          </div>
+        </div>
+        <div class="chat-message">
+          <div class="chat-avatar">JT</div>
+          <div class="chat-bubble">
+            <div class="chat-name">James T.</div>
+            <div class="chat-text">Day 12 done ✅ Can already feel the difference when I'm sitting at my desk. Less tension in my lower back!</div>
+            <div class="chat-time">9:32 AM</div>
+          </div>
+        </div>
+        <div class="chat-message">
+          <div class="chat-avatar">AL</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Amanda L.</div>
+            <div class="chat-text">@James T. Same here! I used to get up every hour because of stiffness. Now I barely notice it 🙌</div>
+            <div class="chat-time">9:45 AM</div>
+          </div>
+        </div>
+        <div class="chat-message">
+          <div class="chat-avatar">MK</div>
+          <div class="chat-bubble">
+            <div class="chat-name">Mike K.</div>
+            <div class="chat-text">About to start mine now. Let's get it! 💪</div>
+            <div class="chat-time">10:02 AM</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="team-chat" id="teamInfoContent" style="display: none; padding: 24px;">
+        <div class="progress-card">
+          <div class="progress-card-title">About This Team</div>
+          <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-top: 10px;">
+            Desk Reset is a 6-week program designed to reverse the damage of prolonged sitting. Led by Dr. Rachel Kim, you'll rebuild mobility in your hips, spine, and shoulders through 15-minute daily flows.
+          </p>
+        </div>
+        <div class="progress-card" style="margin-top: 14px;">
+          <div class="progress-card-title">Team Stats</div>
+          <div style="display: flex; gap: 28px; margin-top: 14px;">
+            <div><div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 1.6rem; font-weight: 400; color: var(--accent);">2,847</div><div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Members</div></div>
+            <div><div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 1.6rem; font-weight: 400; color: var(--accent);">89%</div><div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Completion</div></div>
+            <div><div style="font-family: 'Instrument Serif', Georgia, serif; font-size: 1.6rem; font-weight: 400; color: var(--accent);">4.9</div><div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Rating</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-container">
+        <input type="text" class="chat-input" placeholder="Message the team...">
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" onclick="navigateTo('home')"><span class="nav-icon">🏠</span><span>Today</span></button>
+        <button class="nav-item" onclick="navigateTo('program')"><span class="nav-icon">📅</span><span>Program</span></button>
+        <button class="nav-item active" onclick="navigateTo('team')"><span class="nav-icon">💬</span><span>Team</span></button>
+        <button class="nav-item" onclick="navigateTo('progress')"><span class="nav-icon">📈</span><span>Progress</span></button>
+        <button class="nav-item" onclick="navigateTo('profile')"><span class="nav-icon">👤</span><span>Profile</span></button>
+      </nav>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="screen progress-screen" id="progress">
+      <div class="progress-header">
+        <h1 class="progress-title">Progress</h1>
+      </div>
+
+      <div class="progress-content">
+        <div class="progress-card">
+          <div class="progress-card-title">Current Streak</div>
+          <div class="progress-card-value">7 days</div>
+          <div class="progress-card-subtitle">🔥 Your longest: 14 days</div>
+        </div>
+
+        <div class="progress-grid">
+          <div class="progress-card">
+            <div class="progress-card-title">Sessions</div>
+            <div class="progress-card-value">47</div>
+            <div class="progress-card-subtitle">Total completed</div>
+          </div>
+          <div class="progress-card">
+            <div class="progress-card-title">Time</div>
+            <div class="progress-card-value">11.7h</div>
+            <div class="progress-card-subtitle">Total practice</div>
+          </div>
+        </div>
+
+        <div class="progress-card">
+          <div class="progress-card-title">Program Progress</div>
+          <div class="progress-card-value">28%</div>
+          <div class="progress-card-subtitle">Desk Reset • Week 2 of 6</div>
+        </div>
+
+        <div class="badges-section">
+          <h2 class="badges-title">Badges</h2>
+          <div class="badges-grid">
+            <div class="badge-item"><div class="badge-icon">🔥</div><div class="badge-name">7 Day</div></div>
+            <div class="badge-item"><div class="badge-icon">⭐</div><div class="badge-name">First Session</div></div>
+            <div class="badge-item"><div class="badge-icon">🎯</div><div class="badge-name">Week 1</div></div>
+            <div class="badge-item"><div class="badge-icon">💪</div><div class="badge-name">10 Sessions</div></div>
+            <div class="badge-item locked"><div class="badge-icon">🏆</div><div class="badge-name">14 Day</div></div>
+            <div class="badge-item locked"><div class="badge-icon">🌟</div><div class="badge-name">Month 1</div></div>
+            <div class="badge-item locked"><div class="badge-icon">👑</div><div class="badge-name">50 Sessions</div></div>
+            <div class="badge-item locked"><div class="badge-icon">💎</div><div class="badge-name">Program Done</div></div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" onclick="navigateTo('home')"><span class="nav-icon">🏠</span><span>Today</span></button>
+        <button class="nav-item" onclick="navigateTo('program')"><span class="nav-icon">📅</span><span>Program</span></button>
+        <button class="nav-item" onclick="navigateTo('team')"><span class="nav-icon">💬</span><span>Team</span></button>
+        <button class="nav-item active" onclick="navigateTo('progress')"><span class="nav-icon">📈</span><span>Progress</span></button>
+        <button class="nav-item" onclick="navigateTo('profile')"><span class="nav-icon">👤</span><span>Profile</span></button>
+      </nav>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="screen profile" id="profile">
+      <div class="profile-header">
+        <div class="profile-avatar">D</div>
+        <h1 class="profile-name">Dylan</h1>
+        <p class="profile-joined">Member since December 2025</p>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-value">47</div>
+            <div class="profile-stat-label">Sessions</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value">7</div>
+            <div class="profile-stat-label">Streak</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value">4</div>
+            <div class="profile-stat-label">Badges</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-content">
+        <div class="profile-section-title">Current Team</div>
+        <div class="profile-menu-item" onclick="navigateTo('program')">
+          <span class="profile-menu-icon">🧘</span>
+          <span class="profile-menu-text">Desk Reset</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+
+        <div class="profile-section-title">Account</div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">👤</span>
+          <span class="profile-menu-text">Edit Profile</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">🔔</span>
+          <span class="profile-menu-text">Notifications</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">⚙️</span>
+          <span class="profile-menu-text">Settings</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+
+        <div class="profile-section-title">Subscription</div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">💳</span>
+          <span class="profile-menu-text">Manage Subscription</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+
+        <div class="profile-section-title">Support</div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">❓</span>
+          <span class="profile-menu-text">Help Center</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+        <div class="profile-menu-item">
+          <span class="profile-menu-icon">💬</span>
+          <span class="profile-menu-text">Contact Us</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" onclick="navigateTo('home')"><span class="nav-icon">🏠</span><span>Today</span></button>
+        <button class="nav-item" onclick="navigateTo('program')"><span class="nav-icon">📅</span><span>Program</span></button>
+        <button class="nav-item" onclick="navigateTo('team')"><span class="nav-icon">💬</span><span>Team</span></button>
+        <button class="nav-item" onclick="navigateTo('progress')"><span class="nav-icon">📈</span><span>Progress</span></button>
+        <button class="nav-item active" onclick="navigateTo('profile')"><span class="nav-icon">👤</span><span>Profile</span></button>
+      </nav>
+    </div>
+
+    <!-- SESSION -->
+    <div class="screen session" id="session">
+      <div class="session-video">
+        <button class="btn btn-ghost session-close" onclick="navigateTo('home')">✕</button>
+        <span class="session-video-icon">🧘</span>
+      </div>
+      
+      <div class="session-content">
+        <p class="session-eyebrow" id="sessionEyebrow">Movement 3 of 8</p>
+        <h1 class="session-movement" id="sessionMovement">90/90 Hip Stretch</h1>
+        <p class="session-cue" id="sessionCue">"Sit tall through your spine. Breathe into the stretch. Let gravity do the work."</p>
+        
+        <div class="session-timer">
+          <div class="session-timer-display" id="timerDisplay">0:45</div>
+          <div class="session-timer-label">Hold Time</div>
+        </div>
+        
+        <div class="session-progress">
+          <div class="session-progress-bar" id="sessionProgress" style="width: 37.5%"></div>
+        </div>
+        
+        <div class="session-controls">
+          <button class="btn btn-secondary session-btn" onclick="prevMovement()">⏮ Previous</button>
+          <button class="btn btn-primary session-btn" onclick="nextMovement()">Next ⏭</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Navigation
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function navigateTo(id) {
+      showScreen(id);
+    }
+
+    function goHome() {
+      showScreen('home');
+    }
+
+    function toggleDay(el) {
+      if (!el.classList.contains('today')) {
+        el.classList.toggle('completed');
+        const status = el.querySelector('.week-day-status');
+        status.textContent = el.classList.contains('completed') ? '✓' : '';
+      }
+    }
+
+    // Quiz
+    let currentQuestion = 0;
+    let selectedOption = -1;
+    const questions = [
+      { q: "What's your primary goal?", options: [
+        { icon: "🪑", title: "Undo desk damage", desc: "Fix posture, reduce stiffness" },
+        { icon: "🏋️", title: "Move better for training", desc: "Squat deeper, lift pain-free" },
+        { icon: "🔥", title: "Reduce pain & tightness", desc: "Back, neck, hips, shoulders" },
+        { icon: "🤸", title: "Get flexible", desc: "Splits, backbends, full ROM" }
+      ]},
+      { q: "Where do you feel most restricted?", options: [
+        { icon: "🦴", title: "Hips", desc: "Tight hip flexors, limited rotation" },
+        { icon: "🔙", title: "Back & spine", desc: "Stiff lower or upper back" },
+        { icon: "💪", title: "Shoulders", desc: "Limited overhead mobility" },
+        { icon: "🦵", title: "Legs", desc: "Hamstrings, quads, calves" }
+      ]},
+      { q: "How much time can you commit?", options: [
+        { icon: "⚡", title: "10-15 minutes", desc: "Quick daily sessions" },
+        { icon: "⏱", title: "20-30 minutes", desc: "Moderate commitment" },
+        { icon: "🕐", title: "30-45 minutes", desc: "Dedicated practice" },
+        { icon: "🔥", title: "Whatever it takes", desc: "I'm all in" }
+      ]},
+      { q: "What's your experience level?", options: [
+        { icon: "🌱", title: "Beginner", desc: "New to mobility work" },
+        { icon: "📈", title: "Intermediate", desc: "Some stretching experience" },
+        { icon: "🎯", title: "Advanced", desc: "Regular mobility practice" },
+        { icon: "🏆", title: "Athlete", desc: "Sport-specific needs" }
+      ]}
+    ];
+
+    function renderQuestion() {
+      const q = questions[currentQuestion];
+      document.getElementById('quizQuestion').textContent = q.q;
+      document.getElementById('quizStep').textContent = `${currentQuestion + 1}/4`;
+      for (let i = 0; i < 4; i++) {
+        document.getElementById('prog' + (i + 1)).classList.toggle('filled', i <= currentQuestion);
+      }
+      document.getElementById('quizOptions').innerHTML = q.options.map((opt, idx) => `
+        <div class="quiz-option" onclick="selectOption(this, ${idx})">
+          <div class="quiz-option-icon">${opt.icon}</div>
+          <div class="quiz-option-text">
+            <div class="quiz-option-title">${opt.title}</div>
+            <div class="quiz-option-desc">${opt.desc}</div>
+          </div>
+          <div class="quiz-option-check">✓</div>
+        </div>
+      `).join('');
+      selectedOption = -1;
+      document.getElementById('quizBtn').disabled = true;
+    }
+
+    function selectOption(el, idx) {
+      document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedOption = idx;
+      document.getElementById('quizBtn').disabled = false;
+    }
+
+    function nextQuestion() {
+      if (selectedOption === -1) return;
+      currentQuestion++;
+      if (currentQuestion >= questions.length) {
+        showScreen('teams');
+        currentQuestion = 0;
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function prevQuestion() {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        renderQuestion();
+      } else {
+        showScreen('splash');
+      }
+    }
+
+    // Session
+    let movementNum = 3;
+    const movements = [
+      { name: "Cat-Cow Stretch", cue: "Flow smoothly between arching and rounding your spine. Match movement to breath." },
+      { name: "World's Greatest Stretch", cue: "Drive your elbow toward the ground, then rotate and reach to the sky." },
+      { name: "90/90 Hip Stretch", cue: "Sit tall through your spine. Breathe into the stretch. Let gravity do the work." },
+      { name: "Pigeon Pose", cue: "Square your hips. Walk your hands forward and melt into the stretch." },
+      { name: "Supine Twist", cue: "Keep both shoulders grounded. Let your knees fall heavy to one side." },
+      { name: "Child's Pose", cue: "Sink your hips back. Reach your arms long. Breathe into your lower back." },
+      { name: "Thread the Needle", cue: "Reach under and through, following your hand with your gaze." },
+      { name: "Happy Baby", cue: "Grab the outside of your feet. Gently rock side to side." }
+    ];
+
+    function updateSession() {
+      const m = movements[movementNum - 1];
+      document.getElementById('sessionEyebrow').textContent = `Movement ${movementNum} of 8`;
+      document.getElementById('sessionMovement').textContent = m.name;
+      document.getElementById('sessionCue').textContent = `"${m.cue}"`;
+      document.getElementById('sessionProgress').style.width = `${(movementNum / 8) * 100}%`;
+    }
+
+    function nextMovement() {
+      if (movementNum < 8) { movementNum++; updateSession(); }
+    }
+
+    function prevMovement() {
+      if (movementNum > 1) { movementNum--; updateSession(); }
+    }
+
+    // Team tabs
+    function setTeamTab(el, tab) {
+      document.querySelectorAll('.team-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      
+      document.getElementById('teamChatContent').style.display = tab === 'chat' ? 'flex' : 'none';
+      document.getElementById('teamInfoContent').style.display = tab === 'info' ? 'block' : 'none';
+      
+      // Hide/show chat input based on tab
+      document.querySelector('.chat-input-container').style.display = tab === 'chat' ? 'block' : 'none';
+    }
+
+    // Init
+    renderQuestion();
+  </script>
+</body>
+</html>
