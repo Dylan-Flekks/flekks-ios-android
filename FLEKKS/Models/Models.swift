@@ -10,6 +10,7 @@ struct User: Identifiable, Codable {
     var streakCount: Int
     var totalSessions: Int
     var totalMinutes: Int
+    var currentTeamId: UUID?
 
     var avatarInitials: String {
         let parts = name.split(separator: " ")
@@ -26,6 +27,7 @@ struct User: Identifiable, Codable {
         case streakCount = "streak_count"
         case totalSessions = "total_sessions"
         case totalMinutes = "total_minutes"
+        case currentTeamId = "current_team_id"
     }
 
     static let preview = User(
@@ -36,7 +38,8 @@ struct User: Identifiable, Codable {
         joinedDate: Date(),
         streakCount: 12,
         totalSessions: 47,
-        totalMinutes: 892
+        totalMinutes: 892,
+        currentTeamId: nil
     )
 }
 
@@ -67,10 +70,10 @@ struct Coach: Identifiable, Codable, Equatable {
         case accentColor = "accent_color"
     }
 
-    // Dr. Dylan Peters - Physical Therapist (Low Back specialist)
+    // Dr. Dylan Peters
     static let dylanPeters = Coach(
         id: UUID(uuidString: "c1111111-1111-4444-aaaa-111111111111")!,
-        userId: UUID(uuidString: "a1b2c3d4-1111-4444-aaaa-111111111111"),
+        userId: nil,
         name: "Dr. Dylan Peters",
         credential: "DPT, CSCS",
         bio: "Doctor of Physical Therapy specializing in spinal health, injury prevention, and movement optimization. 10+ years helping desk workers and athletes move pain-free.",
@@ -79,10 +82,10 @@ struct Coach: Identifiable, Codable, Equatable {
         accentColor: "#00d4aa"
     )
 
-    // Tina - Stretch Therapist (Pike & Pancake specialist)
+    // Tina
     static let tina = Coach(
         id: UUID(uuidString: "c2222222-2222-4444-bbbb-222222222222")!,
-        userId: UUID(uuidString: "a1b2c3d4-2222-4444-bbbb-222222222222"),
+        userId: nil,
         name: "Tina",
         credential: "Certified Stretch Therapist",
         bio: "Former professional dancer turned flexibility specialist. I help people unlock their body's full range of motion through targeted stretching protocols. Your pike and pancake goals are my specialty!",
@@ -94,45 +97,62 @@ struct Coach: Identifiable, Codable, Equatable {
     static let allCoaches: [Coach] = [.dylanPeters, .tina]
 }
 
-// MARK: - Team
+// MARK: - Team (Team = Program in simplified model)
 struct Team: Identifiable, Codable, Equatable {
     let id: UUID
     var coachId: UUID
     var name: String
+    var tagline: String?
     var description: String
     var focus: String
     var heroGradient: GradientStyle
+    var thumbnailUrl: String?
+    var weekCount: Int
+    var sessionsPerWeek: Int
     var memberCount: Int
     var isActive: Bool
+    var isFeatured: Bool
 
     // Joined data
     var coach: Coach?
 
-    // Computed match percentage (based on quiz answers in real app)
+    // Local state for user progress
+    var currentWeek: Int = 1
+    var completedSessions: Int = 0
+
+    var totalSessions: Int {
+        weekCount * sessionsPerWeek
+    }
+
+    var progressPercentage: Double {
+        guard totalSessions > 0 else { return 0 }
+        return Double(completedSessions) / Double(totalSessions)
+    }
+
+    // Match percentage based on quiz (computed in real app)
     var matchPercentage: Int {
         switch name {
         case "Low Back Liberation": return 94
-        case "Flexibility Lab": return 86
+        case "Pike Perfection": return 86
+        case "Pancake Protocol": return 82
         default: return 80
         }
     }
 
-    var isLive: Bool {
-        name == "Low Back Liberation" // Dylan's team is live
-    }
-
     enum GradientStyle: String, Codable {
-        case green
-        case purple
-        case blue
+        case green, purple, blue, teal
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, focus
+        case id, name, tagline, description, focus
         case coachId = "coach_id"
         case heroGradient = "hero_gradient"
+        case thumbnailUrl = "thumbnail_url"
+        case weekCount = "week_count"
+        case sessionsPerWeek = "sessions_per_week"
         case memberCount = "member_count"
         case isActive = "is_active"
+        case isFeatured = "is_featured"
         case coach
     }
 
@@ -141,195 +161,187 @@ struct Team: Identifiable, Codable, Equatable {
         id: UUID(uuidString: "t1111111-1111-4444-aaaa-111111111111")!,
         coachId: Coach.dylanPeters.id,
         name: "Low Back Liberation",
-        description: "Fix your low back for good. Science-backed protocols for desk workers, lifters, and anyone tired of living with back pain. No fluff, just results.",
+        tagline: "Fix your low back for good",
+        description: "Science-backed protocols for desk workers, lifters, and anyone tired of living with back pain. No fluff, just results.",
         focus: "Low Back Pain Relief",
         heroGradient: .green,
+        thumbnailUrl: nil,
+        weekCount: 6,
+        sessionsPerWeek: 5,
         memberCount: 847,
         isActive: true,
-        coach: .dylanPeters
+        isFeatured: true,
+        coach: .dylanPeters,
+        currentWeek: 2,
+        completedSessions: 7
     )
 
-    // Tina's Team
-    static let flexibilityLab = Team(
-        id: UUID(uuidString: "t2222222-2222-4444-bbbb-222222222222")!,
+    // Tina's Teams
+    static let pikePerfection = Team(
+        id: UUID(uuidString: "t2222222-2222-4444-bbbb-111111111111")!,
         coachId: Coach.tina.id,
-        name: "Flexibility Lab",
-        description: "Deep flexibility work for serious progress. Whether you're chasing your pike, pancake, or just want to move better - this is where transformation happens.",
-        focus: "Advanced Flexibility",
+        name: "Pike Perfection",
+        tagline: "Touch your toes and beyond",
+        description: "Master the pike stretch with progressive overload and targeted techniques. Go from barely touching your toes to chest-to-knees flexibility.",
+        focus: "Pike Flexibility",
         heroGradient: .purple,
+        thumbnailUrl: nil,
+        weekCount: 8,
+        sessionsPerWeek: 5,
         memberCount: 523,
         isActive: true,
+        isFeatured: true,
         coach: .tina
     )
 
-    static let allTeams: [Team] = [.lowBackLiberation, .flexibilityLab]
-}
-
-// MARK: - Program
-struct Program: Identifiable, Codable, Equatable {
-    let id: UUID
-    var teamId: UUID
-    var name: String
-    var description: String
-    var weekCount: Int
-    var isActive: Bool
-
-    // Joined/computed data
-    var coach: Coach?
-    var currentWeek: Int = 1
-    var completedSessions: Int = 0
-    var totalSessions: Int = 0
-
-    var progressPercentage: Double {
-        guard totalSessions > 0 else { return 0 }
-        return Double(completedSessions) / Double(totalSessions)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id, name, description
-        case teamId = "team_id"
-        case weekCount = "week_count"
-        case isActive = "is_active"
-    }
-
-    // Dylan's Program
-    static let lowBackReset = Program(
-        id: UUID(uuidString: "p1111111-1111-4444-aaaa-111111111111")!,
-        teamId: Team.lowBackLiberation.id,
-        name: "6-Week Low Back Reset",
-        description: "A comprehensive program to eliminate low back pain and build lasting resilience. Combines mobility, stability, and strength work.",
-        weekCount: 6,
-        isActive: true,
-        coach: .dylanPeters,
-        currentWeek: 2,
-        completedSessions: 7,
-        totalSessions: 30
-    )
-
-    // Tina's Programs
-    static let pikePerfection = Program(
-        id: UUID(uuidString: "p2222222-2222-4444-bbbb-111111111111")!,
-        teamId: Team.flexibilityLab.id,
-        name: "Pike Perfection",
-        description: "Master the pike stretch with progressive overload and targeted techniques. Go from barely touching your toes to chest-to-knees flexibility.",
-        weekCount: 8,
-        isActive: true,
-        coach: .tina,
-        currentWeek: 1,
-        completedSessions: 0,
-        totalSessions: 40
-    )
-
-    static let pancakeProtocol = Program(
-        id: UUID(uuidString: "p2222222-2222-4444-bbbb-222222222222")!,
-        teamId: Team.flexibilityLab.id,
+    static let pancakeProtocol = Team(
+        id: UUID(uuidString: "t2222222-2222-4444-bbbb-222222222222")!,
+        coachId: Coach.tina.id,
         name: "Pancake Protocol",
+        tagline: "Flat pancake or bust",
         description: "The ultimate middle splits and pancake progression. Unlock your hips and achieve that flat pancake position.",
+        focus: "Pancake & Middle Splits",
+        heroGradient: .blue,
+        thumbnailUrl: nil,
         weekCount: 8,
+        sessionsPerWeek: 5,
+        memberCount: 312,
         isActive: true,
-        coach: .tina,
-        currentWeek: 1,
-        completedSessions: 0,
-        totalSessions: 40
+        isFeatured: false,
+        coach: .tina
     )
 
-    static let allPrograms: [Program] = [.lowBackReset, .pikePerfection, .pancakeProtocol]
+    static let allTeams: [Team] = [.lowBackLiberation, .pikePerfection, .pancakeProtocol]
 }
 
 // MARK: - Session
 struct Session: Identifiable, Codable, Equatable {
     let id: UUID
-    var programId: UUID
+    var teamId: UUID
     var weekNumber: Int
     var dayNumber: Int
     var title: String
     var description: String
     var focusArea: String
     var durationMinutes: Int
-    var videoUrl: String?
+
+    // Mux video
+    var muxPlaybackId: String?
+    var muxAssetId: String?
     var thumbnailUrl: String?
+
+    // Metadata
+    var equipment: [String]
+    var difficulty: Difficulty
 
     // Local state
     var isCompleted: Bool = false
 
     var duration: Int { durationMinutes }
 
+    var hasMuxVideo: Bool { muxPlaybackId != nil }
+
+    var muxStreamUrl: String? {
+        guard let playbackId = muxPlaybackId else { return nil }
+        return "https://stream.mux.com/\(playbackId).m3u8"
+    }
+
+    var muxThumbnailUrl: String? {
+        guard let playbackId = muxPlaybackId else { return nil }
+        return "https://image.mux.com/\(playbackId)/thumbnail.jpg"
+    }
+
+    enum Difficulty: String, Codable {
+        case easy, moderate, challenging
+    }
+
     enum CodingKeys: String, CodingKey {
-        case id, title, description
-        case programId = "program_id"
+        case id, title, description, equipment, difficulty
+        case teamId = "team_id"
         case weekNumber = "week_number"
         case dayNumber = "day_number"
         case focusArea = "focus_area"
         case durationMinutes = "duration_minutes"
-        case videoUrl = "video_url"
+        case muxPlaybackId = "mux_playback_id"
+        case muxAssetId = "mux_asset_id"
         case thumbnailUrl = "thumbnail_url"
     }
 
-    // Low Back Reset - Week 1 Sessions
+    // Low Back Liberation - Week 1 Sessions
     static let lowBackSessions: [Session] = [
         Session(
             id: UUID(uuidString: "s1111111-1111-4444-aaaa-000000000001")!,
-            programId: Program.lowBackReset.id,
-            weekNumber: 1,
-            dayNumber: 1,
+            teamId: Team.lowBackLiberation.id,
+            weekNumber: 1, dayNumber: 1,
             title: "Assessment & Foundation",
             description: "Identify your movement patterns and establish your baseline.",
             focusArea: "Assessment",
             durationMinutes: 15,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .easy,
             isCompleted: true
         ),
         Session(
             id: UUID(uuidString: "s1111111-1111-4444-aaaa-000000000002")!,
-            programId: Program.lowBackReset.id,
-            weekNumber: 1,
-            dayNumber: 2,
+            teamId: Team.lowBackLiberation.id,
+            weekNumber: 1, dayNumber: 2,
             title: "Hip Hinge Mastery",
             description: "The hip hinge is the #1 skill for protecting your low back.",
             focusArea: "Hips & Glutes",
             durationMinutes: 18,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .moderate,
             isCompleted: true
         ),
         Session(
             id: UUID(uuidString: "s1111111-1111-4444-aaaa-000000000003")!,
-            programId: Program.lowBackReset.id,
-            weekNumber: 1,
-            dayNumber: 3,
+            teamId: Team.lowBackLiberation.id,
+            weekNumber: 1, dayNumber: 3,
             title: "Spine Decompression",
             description: "Gentle traction and decompression techniques.",
             focusArea: "Spine",
             durationMinutes: 12,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat", "foam roller"],
+            difficulty: .easy,
             isCompleted: true
         ),
         Session(
             id: UUID(uuidString: "s1111111-1111-4444-aaaa-000000000004")!,
-            programId: Program.lowBackReset.id,
-            weekNumber: 1,
-            dayNumber: 4,
+            teamId: Team.lowBackLiberation.id,
+            weekNumber: 1, dayNumber: 4,
             title: "Core Activation",
             description: "Learn to properly brace and stabilize your core.",
             focusArea: "Core",
             durationMinutes: 20,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .moderate,
             isCompleted: false
         ),
         Session(
             id: UUID(uuidString: "s1111111-1111-4444-aaaa-000000000005")!,
-            programId: Program.lowBackReset.id,
-            weekNumber: 1,
-            dayNumber: 5,
+            teamId: Team.lowBackLiberation.id,
+            weekNumber: 1, dayNumber: 5,
             title: "Hip Flexor Release",
-            description: "Tight hip flexors contribute to low back pain. Release them.",
+            description: "Release tight hip flexors that contribute to low back pain.",
             focusArea: "Hip Flexors",
             durationMinutes: 15,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .easy,
             isCompleted: false
         )
     ]
@@ -338,67 +350,77 @@ struct Session: Identifiable, Codable, Equatable {
     static let pikeSessions: [Session] = [
         Session(
             id: UUID(uuidString: "s2222222-2222-4444-bbbb-000000000001")!,
-            programId: Program.pikePerfection.id,
-            weekNumber: 1,
-            dayNumber: 1,
+            teamId: Team.pikePerfection.id,
+            weekNumber: 1, dayNumber: 1,
             title: "Pike Assessment",
             description: "Test your current pike and identify limiting factors.",
             focusArea: "Assessment",
             durationMinutes: 12,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .easy,
             isCompleted: false
         ),
         Session(
             id: UUID(uuidString: "s2222222-2222-4444-bbbb-000000000002")!,
-            programId: Program.pikePerfection.id,
-            weekNumber: 1,
-            dayNumber: 2,
+            teamId: Team.pikePerfection.id,
+            weekNumber: 1, dayNumber: 2,
             title: "Hamstring Prep",
             description: "Prepare your hamstrings for deep stretching.",
             focusArea: "Hamstrings",
             durationMinutes: 20,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat", "strap"],
+            difficulty: .moderate,
             isCompleted: false
         ),
         Session(
             id: UUID(uuidString: "s2222222-2222-4444-bbbb-000000000003")!,
-            programId: Program.pikePerfection.id,
-            weekNumber: 1,
-            dayNumber: 3,
+            teamId: Team.pikePerfection.id,
+            weekNumber: 1, dayNumber: 3,
             title: "Hip Flexor Strength",
             description: "Strong hip flexors pull you deeper into your pike.",
             focusArea: "Hip Flexors",
             durationMinutes: 18,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat"],
+            difficulty: .moderate,
             isCompleted: false
         ),
         Session(
             id: UUID(uuidString: "s2222222-2222-4444-bbbb-000000000004")!,
-            programId: Program.pikePerfection.id,
-            weekNumber: 1,
-            dayNumber: 4,
+            teamId: Team.pikePerfection.id,
+            weekNumber: 1, dayNumber: 4,
             title: "Standing Pike Flow",
             description: "Progressive standing pike work with holds and pulses.",
             focusArea: "Full Pike",
             durationMinutes: 22,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat", "block"],
+            difficulty: .moderate,
             isCompleted: false
         ),
         Session(
             id: UUID(uuidString: "s2222222-2222-4444-bbbb-000000000005")!,
-            programId: Program.pikePerfection.id,
-            weekNumber: 1,
-            dayNumber: 5,
+            teamId: Team.pikePerfection.id,
+            weekNumber: 1, dayNumber: 5,
             title: "Seated Pike Deep Work",
             description: "Seated pike variations with weighted stretches.",
             focusArea: "Full Pike",
             durationMinutes: 25,
-            videoUrl: nil,
+            muxPlaybackId: nil,
+            muxAssetId: nil,
             thumbnailUrl: nil,
+            equipment: ["mat", "weight"],
+            difficulty: .challenging,
             isCompleted: false
         )
     ]
@@ -433,8 +455,8 @@ struct ChatMessage: Identifiable, Codable {
         ChatMessage(
             id: UUID(),
             teamId: Team.lowBackLiberation.id,
-            userId: Coach.dylanPeters.userId ?? UUID(),
-            content: "Great work this week everyone! Remember: consistency beats intensity. Even 10 minutes counts.",
+            userId: UUID(),
+            content: "Great work this week everyone! Remember: consistency beats intensity.",
             createdAt: Date().addingTimeInterval(-3600),
             senderName: "Dr. Dylan Peters",
             senderInitials: "DP",
@@ -450,16 +472,6 @@ struct ChatMessage: Identifiable, Codable {
             senderInitials: "SM",
             isCoach: false
         ),
-        ChatMessage(
-            id: UUID(),
-            teamId: Team.lowBackLiberation.id,
-            userId: UUID(),
-            content: "Anyone else struggling with the hip hinge? Tips?",
-            createdAt: Date().addingTimeInterval(-900),
-            senderName: "Mike R.",
-            senderInitials: "MR",
-            isCoach: false
-        ),
     ]
 }
 
@@ -471,7 +483,6 @@ struct Badge: Identifiable, Codable {
     var icon: String
     var requirementType: String?
     var requirementValue: Int?
-
     var isUnlocked: Bool = false
 
     enum CodingKeys: String, CodingKey {
@@ -486,9 +497,6 @@ struct Badge: Identifiable, Codable {
         Badge(id: UUID(), name: "Early Bird", description: "Complete a session before 7am", icon: "sunrise.fill", isUnlocked: true),
         Badge(id: UUID(), name: "Consistent", description: "Maintain a 14-day streak", icon: "bolt.fill", isUnlocked: false),
         Badge(id: UUID(), name: "Dedicated", description: "Complete 30 sessions", icon: "star.fill", isUnlocked: false),
-        Badge(id: UUID(), name: "Team Player", description: "Send 10 chat messages", icon: "person.2.fill", isUnlocked: true),
-        Badge(id: UUID(), name: "30 Days", description: "Maintain a 30-day streak", icon: "trophy.fill", isUnlocked: false),
-        Badge(id: UUID(), name: "Master", description: "Complete 100 sessions", icon: "crown.fill", isUnlocked: false),
     ]
 }
 
@@ -565,5 +573,22 @@ struct UserProgress: Identifiable, Codable {
         case sessionId = "session_id"
         case completedAt = "completed_at"
         case durationSeconds = "duration_seconds"
+    }
+}
+
+// MARK: - Team Member
+struct TeamMember: Identifiable, Codable {
+    let id: UUID
+    var teamId: UUID
+    var userId: UUID
+    var currentWeek: Int
+    var joinedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case teamId = "team_id"
+        case userId = "user_id"
+        case currentWeek = "current_week"
+        case joinedAt = "joined_at"
     }
 }

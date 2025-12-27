@@ -1,6 +1,47 @@
--- FLEKKS Database Schema for Supabase
--- Simplified Team = Program model (like Ladder)
--- Run this in your Supabase SQL Editor
+-- FLEKKS Migration: Reset and Rebuild
+-- This drops old tables and creates the new Team=Program structure
+-- Run this in Supabase SQL Editor
+
+-- ============================================
+-- DROP OLD TABLES (if they exist)
+-- ============================================
+
+-- Drop in reverse dependency order
+DROP TABLE IF EXISTS user_badges CASCADE;
+DROP TABLE IF EXISTS badges CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS user_progress CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS programs CASCADE;  -- Old table, being removed
+DROP TABLE IF EXISTS team_members CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS coaches CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop old functions and triggers
+DROP FUNCTION IF EXISTS increment_team_members CASCADE;
+DROP FUNCTION IF EXISTS decrement_team_members CASCADE;
+DROP FUNCTION IF EXISTS on_team_member_insert CASCADE;
+DROP FUNCTION IF EXISTS on_team_member_delete CASCADE;
+DROP FUNCTION IF EXISTS update_user_streak CASCADE;
+
+-- Drop storage policies (ignore errors if they don't exist)
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Thumbnails are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can upload thumbnails" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can manage thumbnails" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can delete thumbnails" ON storage.objects;
+DROP POLICY IF EXISTS "Team members can view videos" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can upload videos" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can manage videos" ON storage.objects;
+DROP POLICY IF EXISTS "Coaches can delete videos" ON storage.objects;
+
+-- ============================================
+-- CREATE NEW SCHEMA
+-- ============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -56,36 +97,24 @@ CREATE POLICY "Coaches can update own profile" ON coaches
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================
--- TEAMS TABLE (Team = Coach + Community + Program)
--- Each team IS a program - 1:1 relationship
+-- TEAMS TABLE (Team = Program)
 -- ============================================
 CREATE TABLE teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     coach_id UUID REFERENCES coaches(id) ON DELETE CASCADE,
-
-    -- Team identity
-    name TEXT NOT NULL,                    -- "Low Back Liberation", "Pike Perfection"
-    tagline TEXT,                          -- Short hook: "Fix your low back for good"
-    description TEXT,                      -- Full description
-    focus TEXT,                            -- "Low Back Pain", "Pike Flexibility"
-
-    -- Visual
-    hero_gradient TEXT DEFAULT 'green',    -- 'green', 'purple', 'blue', 'teal'
-    thumbnail_url TEXT,                    -- Team card thumbnail
-
-    -- Program structure
-    week_count INTEGER DEFAULT 6,          -- Program duration
-    sessions_per_week INTEGER DEFAULT 5,   -- Sessions per week
-
-    -- Stats
+    name TEXT NOT NULL,
+    tagline TEXT,
+    description TEXT,
+    focus TEXT,
+    hero_gradient TEXT DEFAULT 'green',
+    thumbnail_url TEXT,
+    week_count INTEGER DEFAULT 6,
+    sessions_per_week INTEGER DEFAULT 5,
     member_count INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
-    is_featured BOOLEAN DEFAULT FALSE,     -- Show on explore page
-
-    -- Pricing (for future)
-    price_monthly INTEGER,                 -- In cents
+    is_featured BOOLEAN DEFAULT FALSE,
+    price_monthly INTEGER,
     price_yearly INTEGER,
-
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -101,13 +130,13 @@ CREATE POLICY "Coaches can manage own teams" ON teams
     );
 
 -- ============================================
--- TEAM MEMBERS (Junction Table)
+-- TEAM MEMBERS
 -- ============================================
 CREATE TABLE team_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    current_week INTEGER DEFAULT 1,        -- User's progress in program
+    current_week INTEGER DEFAULT 1,
     joined_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(team_id, user_id)
 );
@@ -121,34 +150,24 @@ CREATE POLICY "Users can manage own memberships" ON team_members
     FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================
--- SESSIONS TABLE (Workouts within a Team)
+-- SESSIONS (with Mux video)
 -- ============================================
 CREATE TABLE sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
-
-    -- Position in program
     week_number INTEGER NOT NULL,
     day_number INTEGER NOT NULL,
-
-    -- Content
     title TEXT NOT NULL,
     description TEXT,
-    focus_area TEXT,                       -- "Hips", "Core", "Spine", etc.
+    focus_area TEXT,
     duration_minutes INTEGER,
-
-    -- Mux Video (instead of Supabase storage)
-    mux_playback_id TEXT,                  -- Mux public playback ID
-    mux_asset_id TEXT,                     -- Mux asset ID (for management)
-    thumbnail_url TEXT,                    -- Mux thumbnail or custom
-
-    -- Metadata
-    equipment TEXT[],                      -- ["mat", "foam roller", "band"]
-    difficulty TEXT DEFAULT 'moderate',   -- 'easy', 'moderate', 'challenging'
-
+    mux_playback_id TEXT,
+    mux_asset_id TEXT,
+    thumbnail_url TEXT,
+    equipment TEXT[],
+    difficulty TEXT DEFAULT 'moderate',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-
     UNIQUE(team_id, week_number, day_number)
 );
 
@@ -166,7 +185,7 @@ CREATE POLICY "Coaches can manage sessions" ON sessions
     );
 
 -- ============================================
--- USER PROGRESS TABLE
+-- USER PROGRESS
 -- ============================================
 CREATE TABLE user_progress (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -183,7 +202,7 @@ CREATE POLICY "Users can manage own progress" ON user_progress
     FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================
--- CHAT MESSAGES TABLE
+-- CHAT MESSAGES
 -- ============================================
 CREATE TABLE chat_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -207,7 +226,7 @@ CREATE POLICY "Team members can send messages" ON chat_messages
     );
 
 -- ============================================
--- BADGES TABLE
+-- BADGES
 -- ============================================
 CREATE TABLE badges (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -233,24 +252,23 @@ CREATE POLICY "Users can view own badges" ON user_badges
     FOR SELECT USING (auth.uid() = user_id);
 
 -- ============================================
--- HELPER FUNCTIONS
+-- FUNCTIONS & TRIGGERS
 -- ============================================
 
-CREATE OR REPLACE FUNCTION increment_team_members(team_id UUID)
+CREATE OR REPLACE FUNCTION increment_team_members(p_team_id UUID)
 RETURNS VOID AS $$
 BEGIN
-    UPDATE teams SET member_count = member_count + 1 WHERE id = team_id;
+    UPDATE teams SET member_count = member_count + 1 WHERE id = p_team_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION decrement_team_members(team_id UUID)
+CREATE OR REPLACE FUNCTION decrement_team_members(p_team_id UUID)
 RETURNS VOID AS $$
 BEGIN
-    UPDATE teams SET member_count = GREATEST(0, member_count - 1) WHERE id = team_id;
+    UPDATE teams SET member_count = GREATEST(0, member_count - 1) WHERE id = p_team_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Auto-increment on team join
 CREATE OR REPLACE FUNCTION on_team_member_insert()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -264,7 +282,6 @@ CREATE TRIGGER team_member_insert_trigger
     FOR EACH ROW
     EXECUTE FUNCTION on_team_member_insert();
 
--- Auto-decrement on team leave
 CREATE OR REPLACE FUNCTION on_team_member_delete()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -278,7 +295,6 @@ CREATE TRIGGER team_member_delete_trigger
     FOR EACH ROW
     EXECUTE FUNCTION on_team_member_delete();
 
--- Streak update function
 CREATE OR REPLACE FUNCTION update_user_streak()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -319,21 +335,16 @@ CREATE TRIGGER on_session_complete
     EXECUTE FUNCTION update_user_streak();
 
 -- ============================================
--- STORAGE BUCKETS (Avatars & Thumbnails only)
--- Videos are hosted on Mux
+-- STORAGE BUCKETS
 -- ============================================
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'avatars', 'avatars', TRUE, 2097152,
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
-) ON CONFLICT (id) DO NOTHING;
+VALUES ('avatars', 'avatars', TRUE, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'thumbnails', 'thumbnails', TRUE, 1048576,
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
-) ON CONFLICT (id) DO NOTHING;
+VALUES ('thumbnails', 'thumbnails', TRUE, 1048576, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
 
 -- Avatar policies
 CREATE POLICY "Avatar images are publicly accessible"
@@ -368,25 +379,11 @@ CREATE POLICY "Coaches can upload thumbnails"
 ON storage.objects FOR INSERT WITH CHECK (
     bucket_id = 'thumbnails'
     AND auth.role() = 'authenticated'
-    AND auth.uid() IN (SELECT user_id FROM coaches)
-);
-
-CREATE POLICY "Coaches can manage thumbnails"
-ON storage.objects FOR UPDATE USING (
-    bucket_id = 'thumbnails'
-    AND auth.role() = 'authenticated'
-    AND auth.uid() IN (SELECT user_id FROM coaches)
-);
-
-CREATE POLICY "Coaches can delete thumbnails"
-ON storage.objects FOR DELETE USING (
-    bucket_id = 'thumbnails'
-    AND auth.role() = 'authenticated'
-    AND auth.uid() IN (SELECT user_id FROM coaches)
+    AND auth.uid() IN (SELECT user_id FROM coaches WHERE user_id IS NOT NULL)
 );
 
 -- ============================================
--- INDEXES FOR PERFORMANCE
+-- INDEXES
 -- ============================================
 CREATE INDEX idx_team_members_user ON team_members(user_id);
 CREATE INDEX idx_team_members_team ON team_members(team_id);
@@ -397,6 +394,6 @@ CREATE INDEX idx_sessions_team ON sessions(team_id);
 CREATE INDEX idx_sessions_week ON sessions(team_id, week_number);
 
 -- ============================================
--- ENABLE REALTIME
+-- DONE
 -- ============================================
--- Run separately: ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+SELECT 'Migration complete! Now run seed.sql to add test data.' as status;
