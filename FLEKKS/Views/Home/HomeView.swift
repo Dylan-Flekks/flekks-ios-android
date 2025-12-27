@@ -61,9 +61,20 @@ struct HomeView: View {
 
                 // Today's Session Card
                 if let session = dataService.todaySession {
-                    TodaySessionCard(session: session, coach: dataService.currentProgram?.coach) {
-                        appState.startSession(session)
-                    }
+                    TodaySessionCard(
+                        session: session,
+                        coach: dataService.currentProgram?.coach,
+                        isSaved: appState.savedSessions.contains(session.id),
+                        onTap: {
+                            appState.viewSessionDetail(session)
+                        },
+                        onStart: {
+                            appState.startSession(session)
+                        },
+                        onSave: {
+                            appState.toggleSaveSession(session.id)
+                        }
+                    )
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
                 }
@@ -130,6 +141,17 @@ struct HomeView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $appState.showSessionDetail) {
+            if let session = appState.selectedSessionForDetail {
+                NavigationView {
+                    SessionDetailView(
+                        session: session,
+                        coach: dataService.currentProgram?.coach ?? appState.selectedTeam?.coach
+                    )
+                    .environmentObject(appState)
+                }
+            }
+        }
     }
 }
 
@@ -137,82 +159,149 @@ struct HomeView: View {
 struct TodaySessionCard: View {
     let session: Session
     let coach: Coach?
+    var isSaved: Bool = false
+    var onTap: (() -> Void)? = nil
     let onStart: () -> Void
+    var onSave: (() -> Void)? = nil
 
     @State private var isGlowing = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Hero with enhanced gradient
-            ZStack {
-                // Base gradient
-                FLEKKSGradients.heroTealVibrant
-                    .frame(height: 120)
+        Button(action: { onTap?() }) {
+            VStack(spacing: 0) {
+                // Hero with enhanced gradient
+                ZStack {
+                    // Base gradient
+                    FLEKKSGradients.heroTealVibrant
+                        .frame(height: 140)
 
-                // Multiple glow layers
-                Circle()
-                    .fill(FLEKKSGradients.tealGlowIntense)
-                    .frame(width: 250, height: 250)
-                    .blur(radius: 50)
-                    .offset(y: 20)
-                    .scaleEffect(isGlowing ? 1.1 : 1.0)
-                    .opacity(isGlowing ? 0.9 : 0.6)
+                    // Multiple glow layers
+                    Circle()
+                        .fill(FLEKKSGradients.tealGlowIntense)
+                        .frame(width: 250, height: 250)
+                        .blur(radius: 50)
+                        .offset(y: 20)
+                        .scaleEffect(isGlowing ? 1.1 : 1.0)
+                        .opacity(isGlowing ? 0.9 : 0.6)
 
-                // Session icon based on focus area
-                Text(iconForFocusArea(session.focusArea))
-                    .font(.system(size: 48))
-                    .scaleEffect(isGlowing ? 1.05 : 1.0)
-            }
-            .onAppear {
-                withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
-                    isGlowing = true
-                }
-            }
+                    // Session icon based on focus area
+                    Text(iconForFocusArea(session.focusArea))
+                        .font(.system(size: 56))
+                        .scaleEffect(isGlowing ? 1.05 : 1.0)
 
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text("TODAY'S SESSION")
-                    .font(FLEKKSFonts.labelSmall)
-                    .foregroundStyle(FLEKKSGradients.accentGradient)
-                    .tracking(1.5)
+                    // Top right action buttons
+                    VStack {
+                        HStack {
+                            Spacer()
 
-                Text(session.title)
-                    .font(FLEKKSFonts.heading(22))
-                    .foregroundColor(.textPrimary)
+                            // Save button
+                            if let onSave = onSave {
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        onSave()
+                                    }
+                                }) {
+                                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(isSaved ? .accent : .white)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color.black.opacity(0.4))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(16)
 
-                if let coach = coach {
-                    Text("with \(coach.name)")
-                        .font(FLEKKSFonts.bodyMedium(14))
-                        .foregroundColor(.textSecondary)
-                        .padding(.bottom, 12)
-                }
-
-                // Meta info with gradient icons
-                HStack(spacing: 12) {
-                    MetaTag(icon: "clock", text: "\(session.durationMinutes) min")
-                    MetaTag(icon: "flame", text: intensityForDuration(session.durationMinutes))
-                    MetaTag(icon: "target", text: session.focusArea)
-                }
-                .padding(.bottom, 18)
-
-                Button(action: onStart) {
-                    HStack {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Start Session")
+                        Spacer()
                     }
                 }
-                .buttonStyle(PrimaryButtonStyle())
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                        isGlowing = true
+                    }
+                }
+
+                // Content
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("TODAY'S SESSION")
+                            .font(FLEKKSFonts.labelSmall)
+                            .foregroundStyle(FLEKKSGradients.accentGradient)
+                            .tracking(1.5)
+
+                        Spacer()
+
+                        if session.isCompleted {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 12))
+                                Text("COMPLETED")
+                                    .font(FLEKKSFonts.labelSmall)
+                            }
+                            .foregroundColor(.accent)
+                        }
+                    }
+
+                    Text(session.title)
+                        .font(FLEKKSFonts.heading(22))
+                        .foregroundColor(.textPrimary)
+                        .multilineTextAlignment(.leading)
+
+                    if let coach = coach {
+                        Text("with \(coach.name)")
+                            .font(FLEKKSFonts.bodyMedium(14))
+                            .foregroundColor(.textSecondary)
+                            .padding(.bottom, 8)
+                    }
+
+                    // Meta info with gradient icons
+                    HStack(spacing: 12) {
+                        MetaTag(icon: "clock", text: "\(session.durationMinutes) min")
+                        MetaTag(icon: "flame", text: intensityForDuration(session.durationMinutes))
+                        MetaTag(icon: "target", text: session.focusArea)
+                    }
+                    .padding(.bottom, 16)
+
+                    // Action buttons row
+                    HStack(spacing: 12) {
+                        Button(action: onStart) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Start Session")
+                                    .font(FLEKKSFonts.bodySemibold(15))
+                            }
+                        }
+                        .buttonStyle(TealGlowButtonStyle())
+
+                        // View Details Button
+                        Button(action: { onTap?() }) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.textSecondary)
+                                .frame(width: 52, height: 52)
+                                .background(Color.bgElevated)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.border, lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(22)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(22)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.bgCard)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
+            )
         }
-        .background(Color.bgCard)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
 
     private func iconForFocusArea(_ area: String) -> String {
