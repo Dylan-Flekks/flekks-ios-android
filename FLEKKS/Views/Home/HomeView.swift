@@ -2,10 +2,21 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var dataService = DataService.shared
 
-    private let weekDays = ["M", "T", "W", "T", "F", "S", "S"]
-    private let dayNumbers = [23, 24, 25, 26, 27, 28, 29]
-    private let completedDays = [0, 1, 2] // Mon, Tue, Wed completed
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        case 17..<21: return "Good evening"
+        default: return "Good night"
+        }
+    }
+
+    private var userName: String {
+        appState.currentUser?.name.components(separatedBy: " ").first ?? "there"
+    }
 
     var body: some View {
         ScrollView {
@@ -13,10 +24,10 @@ struct HomeView: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Good morning")
+                        Text(greeting)
                             .font(FLEKKSFonts.bodyMedium(14))
                             .foregroundColor(.textMuted)
-                        Text("Alex")
+                        Text(userName)
                             .font(FLEKKSFonts.heading(28))
                             .foregroundColor(.textPrimary)
                     }
@@ -24,7 +35,9 @@ struct HomeView: View {
                     Spacer()
 
                     // Streak badge with gradient
-                    Button(action: {}) {
+                    Button(action: {
+                        appState.navigateToTab(.progress)
+                    }) {
                         HStack(spacing: 6) {
                             Text("🔥")
                                 .font(.system(size: 18))
@@ -47,9 +60,13 @@ struct HomeView: View {
                 .padding(.bottom, 28)
 
                 // Today's Session Card
-                TodaySessionCard()
+                if let session = dataService.todaySession {
+                    TodaySessionCard(session: session, coach: dataService.currentProgram?.coach) {
+                        appState.startSession(session)
+                    }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
+                }
 
                 // This Week section
                 VStack(alignment: .leading, spacing: 14) {
@@ -58,43 +75,70 @@ struct HomeView: View {
                             .font(FLEKKSFonts.titleSmall)
                             .foregroundColor(.textPrimary)
                         Spacer()
-                        Button("View All") {}
-                            .font(FLEKKSFonts.labelLarge)
-                            .foregroundStyle(FLEKKSGradients.accentGradient)
+                        Button("View All") {
+                            appState.navigateToTab(.program)
+                        }
+                        .font(FLEKKSFonts.labelLarge)
+                        .foregroundStyle(FLEKKSGradients.accentGradient)
                     }
 
                     // Week days
-                    HStack(spacing: 6) {
-                        ForEach(0..<7, id: \.self) { index in
-                            WeekDayCard(
-                                dayName: weekDays[index],
-                                dayNumber: dayNumbers[index],
-                                isToday: index == 3,
-                                isCompleted: completedDays.contains(index)
-                            )
-                        }
-                    }
+                    WeekProgressView(sessions: dataService.sessions)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 28)
 
-                // Team Chat Preview
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Team Chat")
-                        .font(FLEKKSFonts.titleSmall)
-                        .foregroundColor(.textPrimary)
+                // Current Program Progress
+                if let program = dataService.currentProgram {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Your Program")
+                            .font(FLEKKSFonts.titleSmall)
+                            .foregroundColor(.textPrimary)
 
-                    TeamChatPreviewCard()
+                        ProgramProgressCard(program: program) {
+                            appState.navigateToTab(.program)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 100)
+
+                // Team Chat Preview
+                if let team = appState.selectedTeam {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Team Chat")
+                            .font(FLEKKSFonts.titleSmall)
+                            .foregroundColor(.textPrimary)
+
+                        TeamChatPreviewCard(team: team) {
+                            appState.navigateToTab(.team)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 100)
+                }
             }
         }
         .background(Color.bgPrimary)
+        .onAppear {
+            if let team = appState.selectedTeam {
+                Task {
+                    await dataService.fetchPrograms(teamId: team.id)
+                    if let program = dataService.currentProgram {
+                        await dataService.fetchSessions(programId: program.id)
+                    }
+                }
+            }
+        }
     }
 }
 
+// MARK: - Today's Session Card
 struct TodaySessionCard: View {
+    let session: Session
+    let coach: Coach?
+    let onStart: () -> Void
+
     @State private var isGlowing = false
 
     var body: some View {
@@ -114,7 +158,8 @@ struct TodaySessionCard: View {
                     .scaleEffect(isGlowing ? 1.1 : 1.0)
                     .opacity(isGlowing ? 0.9 : 0.6)
 
-                Text("🧘")
+                // Session icon based on focus area
+                Text(iconForFocusArea(session.focusArea))
                     .font(.system(size: 48))
                     .scaleEffect(isGlowing ? 1.05 : 1.0)
             }
@@ -131,25 +176,31 @@ struct TodaySessionCard: View {
                     .foregroundStyle(FLEKKSGradients.accentGradient)
                     .tracking(1.5)
 
-                Text("Hip Opener Flow")
+                Text(session.title)
                     .font(FLEKKSFonts.heading(22))
                     .foregroundColor(.textPrimary)
 
-                Text("with Dr. Dylan")
-                    .font(FLEKKSFonts.bodyMedium(14))
-                    .foregroundColor(.textSecondary)
-                    .padding(.bottom, 12)
+                if let coach = coach {
+                    Text("with \(coach.name)")
+                        .font(FLEKKSFonts.bodyMedium(14))
+                        .foregroundColor(.textSecondary)
+                        .padding(.bottom, 12)
+                }
 
                 // Meta info with gradient icons
                 HStack(spacing: 12) {
-                    MetaTag(icon: "clock", text: "18 min")
-                    MetaTag(icon: "flame", text: "Moderate")
-                    MetaTag(icon: "target", text: "Hips")
+                    MetaTag(icon: "clock", text: "\(session.durationMinutes) min")
+                    MetaTag(icon: "flame", text: intensityForDuration(session.durationMinutes))
+                    MetaTag(icon: "target", text: session.focusArea)
                 }
                 .padding(.bottom, 18)
 
-                Button(action: {}) {
-                    Text("Start Session")
+                Button(action: onStart) {
+                    HStack {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Start Session")
+                    }
                 }
                 .buttonStyle(PrimaryButtonStyle())
             }
@@ -163,8 +214,29 @@ struct TodaySessionCard: View {
                 .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
         )
     }
+
+    private func iconForFocusArea(_ area: String) -> String {
+        switch area.lowercased() {
+        case let a where a.contains("hip"): return "🦵"
+        case let a where a.contains("back") || a.contains("spine"): return "🧘"
+        case let a where a.contains("core"): return "💪"
+        case let a where a.contains("shoulder"): return "🙆"
+        case let a where a.contains("hamstring"): return "🏃"
+        case let a where a.contains("pike"): return "🤸"
+        default: return "✨"
+        }
+    }
+
+    private func intensityForDuration(_ minutes: Int) -> String {
+        switch minutes {
+        case ..<15: return "Light"
+        case 15..<25: return "Moderate"
+        default: return "Intense"
+        }
+    }
 }
 
+// MARK: - Meta Tag
 struct MetaTag: View {
     let icon: String
     let text: String
@@ -182,6 +254,35 @@ struct MetaTag: View {
         .padding(.vertical, 6)
         .background(Color.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// MARK: - Week Progress View
+struct WeekProgressView: View {
+    let sessions: [Session]
+
+    private let weekDays = ["M", "T", "W", "T", "F", "S", "S"]
+
+    private var currentDayOfWeek: Int {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        // Convert Sunday = 1 to Monday = 0 format
+        return weekday == 1 ? 6 : weekday - 2
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<7, id: \.self) { index in
+                let dayNumber = Calendar.current.component(.day, from: Date().addingTimeInterval(Double((index - currentDayOfWeek) * 86400)))
+                let isCompleted = index < sessions.filter({ $0.isCompleted }).count
+
+                WeekDayCard(
+                    dayName: weekDays[index],
+                    dayNumber: dayNumber,
+                    isToday: index == currentDayOfWeek,
+                    isCompleted: isCompleted
+                )
+            }
+        }
     }
 }
 
@@ -226,13 +327,87 @@ struct WeekDayCard: View {
     }
 }
 
-struct TeamChatPreviewCard: View {
+// MARK: - Program Progress Card
+struct ProgramProgressCard: View {
+    let program: Program
+    let onTap: () -> Void
+
     var body: some View {
-        Button(action: {}) {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(program.name)
+                            .font(FLEKKSFonts.bodySemibold(16))
+                            .foregroundColor(.textPrimary)
+
+                        if let coach = program.coach {
+                            Text("with \(coach.name)")
+                                .font(FLEKKSFonts.body(13))
+                                .foregroundColor(.textSecondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Text("Week \(program.currentWeek)")
+                        .font(FLEKKSFonts.labelMedium)
+                        .foregroundStyle(FLEKKSGradients.accentGradient)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.accentGlowStrong)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                // Progress bar
+                VStack(alignment: .leading, spacing: 6) {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.bgElevated)
+                                .frame(height: 8)
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(FLEKKSGradients.accentGradientVibrant)
+                                .frame(width: geometry.size.width * program.progressPercentage, height: 8)
+                        }
+                    }
+                    .frame(height: 8)
+
+                    HStack {
+                        Text("\(program.completedSessions)/\(program.totalSessions) sessions")
+                            .font(FLEKKSFonts.labelSmall)
+                            .foregroundColor(.textMuted)
+                        Spacer()
+                        Text("\(Int(program.progressPercentage * 100))%")
+                            .font(FLEKKSFonts.labelSmall)
+                            .foregroundStyle(FLEKKSGradients.accentGradient)
+                    }
+                }
+            }
+            .padding(18)
+            .background(Color.bgCard)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Team Chat Preview Card
+struct TeamChatPreviewCard: View {
+    let team: Team
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
             HStack(spacing: 14) {
                 // Avatar stack with gradient
                 HStack(spacing: -10) {
-                    ForEach(["DD", "SM", "MR"], id: \.self) { initials in
+                    ForEach(["DP", "SM", "MR"], id: \.self) { initials in
                         ZStack {
                             Circle()
                                 .fill(FLEKKSGradients.avatarGradient)
@@ -251,7 +426,7 @@ struct TeamChatPreviewCard: View {
                         Circle()
                             .fill(Color.bgElevated)
                             .frame(width: 32, height: 32)
-                        Text("+12")
+                        Text("+\(max(0, team.memberCount - 3))")
                             .font(FLEKKSFonts.labelSmall)
                             .foregroundColor(.textSecondary)
                     }
@@ -262,7 +437,7 @@ struct TeamChatPreviewCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Team Bulletproof")
+                    Text(team.name)
                         .font(FLEKKSFonts.bodySemibold(14))
                         .foregroundColor(.textPrimary)
                     Text("Sarah: Just finished Day 5! 🎉")
