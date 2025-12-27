@@ -12,32 +12,32 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Good morning")
-                            .font(.system(size: 14))
+                            .font(FLEKKSFonts.bodyMedium(14))
                             .foregroundColor(.textMuted)
                         Text("Alex")
-                            .font(.custom("Georgia", size: 28))
+                            .font(FLEKKSFonts.heading(28))
                             .foregroundColor(.textPrimary)
                     }
 
                     Spacer()
 
-                    // Streak badge
+                    // Streak badge with gradient
                     Button(action: {}) {
                         HStack(spacing: 6) {
                             Text("🔥")
-                                .font(.system(size: 16))
+                                .font(.system(size: 18))
                             Text("\(appState.currentStreak)")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(.flekksOrange)
+                                .font(FLEKKSFonts.headingHeavy(18))
+                                .foregroundStyle(FLEKKSGradients.streakGradient)
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(Color.bgCard)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.border, lineWidth: 1)
+                                .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
@@ -55,12 +55,12 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Text("This Week")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(FLEKKSFonts.titleSmall)
                             .foregroundColor(.textPrimary)
                         Spacer()
                         Button("View All") {}
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.accent)
+                            .font(FLEKKSFonts.labelLarge)
+                            .foregroundStyle(FLEKKSGradients.accentGradient)
                     }
 
                     // Week days
@@ -81,7 +81,7 @@ struct HomeView: View {
                 // Team Chat Preview
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Team Chat")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(FLEKKSFonts.titleSmall)
                         .foregroundColor(.textPrimary)
 
                     TeamChatPreviewCard()
@@ -95,40 +95,52 @@ struct HomeView: View {
 }
 
 struct TodaySessionCard: View {
+    @State private var isGlowing = false
+
     var body: some View {
         VStack(spacing: 0) {
-            // Hero
+            // Hero with enhanced gradient
             ZStack {
-                FLEKKSGradients.heroGreen
+                // Base gradient
+                FLEKKSGradients.heroTealVibrant
                     .frame(height: 120)
 
-                // Glow effect
+                // Multiple glow layers
                 Circle()
-                    .fill(FLEKKSGradients.tealGlow)
-                    .frame(width: 200, height: 200)
+                    .fill(FLEKKSGradients.tealGlowIntense)
+                    .frame(width: 250, height: 250)
                     .blur(radius: 50)
+                    .offset(y: 20)
+                    .scaleEffect(isGlowing ? 1.1 : 1.0)
+                    .opacity(isGlowing ? 0.9 : 0.6)
 
                 Text("🧘")
                     .font(.system(size: 48))
+                    .scaleEffect(isGlowing ? 1.05 : 1.0)
+            }
+            .onAppear {
+                withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                    isGlowing = true
+                }
             }
 
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text("TODAY'S SESSION")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.accent)
+                    .font(FLEKKSFonts.labelSmall)
+                    .foregroundStyle(FLEKKSGradients.accentGradient)
                     .tracking(1.5)
 
                 Text("Hip Opener Flow")
-                    .font(.custom("Georgia", size: 22))
+                    .font(FLEKKSFonts.heading(22))
                     .foregroundColor(.textPrimary)
 
                 Text("with Dr. Dylan")
-                    .font(.system(size: 14))
+                    .font(FLEKKSFonts.bodyMedium(14))
                     .foregroundColor(.textSecondary)
                     .padding(.bottom, 12)
 
-                // Meta info
+                // Meta info with gradient icons
                 HStack(spacing: 12) {
                     MetaTag(icon: "clock", text: "18 min")
                     MetaTag(icon: "flame", text: "Moderate")
@@ -148,7 +160,7 @@ struct TodaySessionCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .overlay(
             RoundedRectangle(cornerRadius: 24)
-                .stroke(Color.border, lineWidth: 1)
+                .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
         )
     }
 }
@@ -160,9 +172,10 @@ struct MetaTag: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(FLEKKSGradients.iconGradient)
             Text(text)
-                .font(.system(size: 12))
+                .font(FLEKKSFonts.labelMedium)
         }
         .foregroundColor(.textSecondary)
         .padding(.horizontal, 10)
@@ -181,17 +194,17 @@ struct WeekDayCard: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(dayName)
-                .font(.system(size: 10, weight: .medium))
+                .font(FLEKKSFonts.labelSmall)
                 .foregroundColor(.textMuted)
 
             Text("\(dayNumber)")
-                .font(.system(size: 16, weight: .bold))
+                .font(FLEKKSFonts.bodyBold(16))
                 .foregroundColor(.textPrimary)
 
             if isCompleted {
                 Image(systemName: "checkmark")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.accent)
+                    .foregroundStyle(FLEKKSGradients.accentGradient)
             } else {
                 Color.clear
                     .frame(height: 14)
@@ -201,11 +214,14 @@ struct WeekDayCard: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(isToday ? Color.accentGlow : Color.bgCard)
+                .fill(isToday ? Color.accentGlowStrong : Color.bgCard)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(isToday ? Color.accent : Color.border, lineWidth: 1)
+                .stroke(
+                    isToday ? FLEKKSGradients.borderGradient : LinearGradient(colors: [Color.border], startPoint: .top, endPoint: .bottom),
+                    lineWidth: isToday ? 1.5 : 1
+                )
         )
     }
 }
@@ -214,7 +230,7 @@ struct TeamChatPreviewCard: View {
     var body: some View {
         Button(action: {}) {
             HStack(spacing: 14) {
-                // Avatar stack
+                // Avatar stack with gradient
                 HStack(spacing: -10) {
                     ForEach(["DD", "SM", "MR"], id: \.self) { initials in
                         ZStack {
@@ -222,7 +238,7 @@ struct TeamChatPreviewCard: View {
                                 .fill(FLEKKSGradients.avatarGradient)
                                 .frame(width: 32, height: 32)
                             Text(initials)
-                                .font(.system(size: 9, weight: .bold))
+                                .font(FLEKKSFonts.labelSmall)
                                 .foregroundColor(.bgPrimary)
                         }
                         .overlay(
@@ -236,7 +252,7 @@ struct TeamChatPreviewCard: View {
                             .fill(Color.bgElevated)
                             .frame(width: 32, height: 32)
                         Text("+12")
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(FLEKKSFonts.labelSmall)
                             .foregroundColor(.textSecondary)
                     }
                     .overlay(
@@ -247,10 +263,10 @@ struct TeamChatPreviewCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Team Bulletproof")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(FLEKKSFonts.bodySemibold(14))
                         .foregroundColor(.textPrimary)
                     Text("Sarah: Just finished Day 5! 🎉")
-                        .font(.system(size: 12))
+                        .font(FLEKKSFonts.body(12))
                         .foregroundColor(.textSecondary)
                         .lineLimit(1)
                 }
@@ -259,7 +275,7 @@ struct TeamChatPreviewCard: View {
 
                 // Unread badge
                 Text("3")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(FLEKKSFonts.labelSmall)
                     .foregroundColor(.white)
                     .frame(width: 22, height: 22)
                     .background(Color.flekksRed)
@@ -270,7 +286,7 @@ struct TeamChatPreviewCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color.border, lineWidth: 1)
+                    .stroke(FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
