@@ -36,7 +36,7 @@ struct SessionPlayerView: View {
                             .font(.system(size: 80))
                             .scaleEffect(isGlowing ? 1.05 : 1.0)
 
-                        if session.videoUrl == nil {
+                        if !session.hasMuxVideo {
                             Text("Video Coming Soon")
                                 .font(FLEKKSFonts.bodyMedium(14))
                                 .foregroundColor(.textMuted)
@@ -198,12 +198,13 @@ struct SessionPlayerView: View {
 
     private func completeSession() {
         timer?.invalidate()
+        let completedDuration = Int(currentTime)
         Task {
             try? await dataService.markSessionComplete(
                 session: session,
-                durationSeconds: Int(currentTime)
+                durationSeconds: completedDuration
             )
-            appState.incrementStreak()
+            appState.recordSessionComplete(session: session, duration: completedDuration)
             appState.endSession()
         }
     }

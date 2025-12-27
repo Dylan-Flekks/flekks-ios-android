@@ -44,6 +44,17 @@ class AppState: ObservableObject {
     // MARK: - Session State
     @Published var currentSession: Session?
     @Published var isPlayingSession: Bool = false
+    @Published var showSessionDetail: Bool = false
+    @Published var selectedSessionForDetail: Session?
+
+    // MARK: - Session Actions State
+    @Published var savedSessions: Set<UUID> = []
+    @Published var scheduledSessions: [UUID: Date] = [:]  // sessionId -> scheduledDate
+    @Published var downloadedSessions: Set<UUID> = []
+
+    // MARK: - Celebration State
+    @Published var showCelebration: Bool = false
+    @Published var completedSessionForCelebration: Session?
 
     // MARK: - Services
     private let authService = AuthService.shared
@@ -51,6 +62,7 @@ class AppState: ObservableObject {
 
     // MARK: - Init
     init() {
+        loadPersistedSessionActions()
         Task {
             await checkAuthState()
         }
@@ -152,9 +164,110 @@ class AppState: ObservableObject {
         // Update local state
         incrementStreak()
 
+        // Trigger celebration
+        completedSessionForCelebration = session
+        showCelebration = true
+
         // Update via service (fire and forget)
         Task {
             // This would call ProgressService to record completion
+        }
+    }
+
+    func dismissCelebration() {
+        showCelebration = false
+        completedSessionForCelebration = nil
+    }
+
+    // MARK: - Session Detail Actions
+    func viewSessionDetail(_ session: Session) {
+        selectedSessionForDetail = session
+        showSessionDetail = true
+    }
+
+    func dismissSessionDetail() {
+        showSessionDetail = false
+        selectedSessionForDetail = nil
+    }
+
+    // MARK: - Save Session Actions
+    func toggleSaveSession(_ sessionId: UUID) {
+        if savedSessions.contains(sessionId) {
+            savedSessions.remove(sessionId)
+        } else {
+            savedSessions.insert(sessionId)
+        }
+        // Persist to UserDefaults or Supabase
+        persistSessionActions()
+    }
+
+    func isSaved(_ sessionId: UUID) -> Bool {
+        savedSessions.contains(sessionId)
+    }
+
+    // MARK: - Schedule Session Actions
+    func scheduleSession(_ sessionId: UUID, for date: Date) {
+        scheduledSessions[sessionId] = date
+        persistSessionActions()
+    }
+
+    func unscheduleSession(_ sessionId: UUID) {
+        scheduledSessions.removeValue(forKey: sessionId)
+        persistSessionActions()
+    }
+
+    func getScheduledDate(_ sessionId: UUID) -> Date? {
+        scheduledSessions[sessionId]
+    }
+
+    func getUpcomingScheduledSessions() -> [(UUID, Date)] {
+        let now = Date()
+        return scheduledSessions
+            .filter { $0.value > now }
+            .sorted { $0.value < $1.value }
+    }
+
+    // MARK: - Download Session Actions
+    func addDownloadedSession(_ sessionId: UUID) {
+        downloadedSessions.insert(sessionId)
+        persistSessionActions()
+    }
+
+    func removeDownloadedSession(_ sessionId: UUID) {
+        downloadedSessions.remove(sessionId)
+        persistSessionActions()
+    }
+
+    func isDownloaded(_ sessionId: UUID) -> Bool {
+        downloadedSessions.contains(sessionId)
+    }
+
+    // MARK: - Persistence
+    private func persistSessionActions() {
+        // Save to UserDefaults for now (could be Supabase in production)
+        if let savedData = try? JSONEncoder().encode(Array(savedSessions)) {
+            UserDefaults.standard.set(savedData, forKey: "savedSessions")
+        }
+        if let scheduledData = try? JSONEncoder().encode(scheduledSessions) {
+            UserDefaults.standard.set(scheduledData, forKey: "scheduledSessions")
+        }
+        if let downloadedData = try? JSONEncoder().encode(Array(downloadedSessions)) {
+            UserDefaults.standard.set(downloadedData, forKey: "downloadedSessions")
+        }
+    }
+
+    private func loadPersistedSessionActions() {
+        if let savedData = UserDefaults.standard.data(forKey: "savedSessions"),
+           let saved = try? JSONDecoder().decode([UUID].self, from: savedData) {
+            savedSessions = Set(saved)
+        }
+        if let scheduledData = UserDefaults.standard.data(forKey: "scheduledSessions"),
+           let scheduled = try? JSONDecoder().decode([UUID: Date].self, from: scheduledData) {
+            scheduledSessions = scheduled
+        }
+        if let downloadedData = UserDefaults.standard.data(forKey: "downloadedSessions"),
+           let downloaded = try? JSONDecoder().decode([UUID].self, from: downloadedData) {
+            downloadedSessions = Set(downloaded)
         }
     }
 

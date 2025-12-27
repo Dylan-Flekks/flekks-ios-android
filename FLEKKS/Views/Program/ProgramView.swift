@@ -97,9 +97,20 @@ struct ProgramView: View {
                         } else {
                             VStack(spacing: 10) {
                                 ForEach(weekSessions) { session in
-                                    SessionRow(session: session) {
-                                        appState.startSession(session)
-                                    }
+                                    SessionRow(
+                                        session: session,
+                                        isSaved: appState.savedSessions.contains(session.id),
+                                        isScheduled: appState.scheduledSessions[session.id] != nil,
+                                        onTap: {
+                                            appState.viewSessionDetail(session)
+                                        },
+                                        onQuickStart: {
+                                            appState.startSession(session)
+                                        },
+                                        onSave: {
+                                            appState.toggleSaveSession(session.id)
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -114,6 +125,17 @@ struct ProgramView: View {
         .onAppear {
             if let program = program {
                 selectedWeek = program.currentWeek
+            }
+        }
+        .fullScreenCover(isPresented: $appState.showSessionDetail) {
+            if let session = appState.selectedSessionForDetail {
+                NavigationView {
+                    SessionDetailView(
+                        session: session,
+                        coach: dataService.currentProgram?.coach ?? appState.selectedTeam?.coach
+                    )
+                    .environmentObject(appState)
+                }
             }
         }
     }
@@ -262,64 +284,127 @@ struct WeekButton: View {
 // MARK: - Session Row
 struct SessionRow: View {
     let session: Session
+    var isSaved: Bool = false
+    var isScheduled: Bool = false
     let onTap: () -> Void
+    var onQuickStart: (() -> Void)? = nil
+    var onSave: (() -> Void)? = nil
+
+    @State private var showActions = false
 
     var body: some View {
-        Button(action: {
-            if !session.isCompleted {
-                onTap()
-            }
-        }) {
-            HStack(spacing: 14) {
-                // Day number badge
-                ZStack {
-                    Circle()
-                        .fill(session.isCompleted ? FLEKKSGradients.avatarGradient : Color.bgElevated)
-                        .frame(width: 36, height: 36)
+        Button(action: onTap) {
+            VStack(spacing: 0) {
+                HStack(spacing: 14) {
+                    // Day number badge
+                    ZStack {
+                        Circle()
+                            .fill(session.isCompleted ? FLEKKSGradients.avatarGradient : Color.bgElevated)
+                            .frame(width: 44, height: 44)
 
-                    if session.isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.bgPrimary)
-                    } else {
-                        Text("D\(session.dayNumber)")
-                            .font(FLEKKSFonts.labelMedium)
-                            .foregroundColor(.textSecondary)
+                        if session.isCompleted {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.bgPrimary)
+                        } else {
+                            VStack(spacing: 0) {
+                                Text("DAY")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.textMuted)
+                                Text("\(session.dayNumber)")
+                                    .font(FLEKKSFonts.headingHeavy(16))
+                                    .foregroundColor(.textPrimary)
+                            }
+                        }
+                    }
+
+                    // Info
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text(session.title)
+                                .font(FLEKKSFonts.bodySemibold(15))
+                                .foregroundColor(session.isCompleted ? .textMuted : .textPrimary)
+                                .lineLimit(1)
+
+                            if isSaved {
+                                Image(systemName: "bookmark.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.accent)
+                            }
+
+                            if isScheduled {
+                                Image(systemName: "calendar.badge.checkmark")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.flekksOrange)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            Text(session.focusArea)
+                                .font(FLEKKSFonts.body(12))
+                                .foregroundColor(.textSecondary)
+
+                            Text("•")
+                                .foregroundColor(.textMuted)
+
+                            Text("\(session.durationMinutes) min")
+                                .font(FLEKKSFonts.body(12))
+                                .foregroundColor(.textMuted)
+                        }
+                    }
+
+                    Spacer()
+
+                    // Action buttons
+                    HStack(spacing: 8) {
+                        // Save button
+                        if let onSave = onSave {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    onSave()
+                                }
+                            }) {
+                                Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(isSaved ? .accent : .textMuted)
+                                    .frame(width: 36, height: 36)
+                                    .background(Color.bgElevated)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        // Play/Start button
+                        if !session.isCompleted {
+                            if let onQuickStart = onQuickStart {
+                                Button(action: onQuickStart) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.bgPrimary)
+                                        .frame(width: 40, height: 40)
+                                        .background(FLEKKSGradients.buttonGradient)
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.textMuted)
+                            }
+                        } else {
+                            // Completed indicator
+                            Text("Done")
+                                .font(FLEKKSFonts.labelSmall)
+                                .foregroundColor(.accent)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.accentGlowStrong)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
-
-                // Info
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(session.title)
-                        .font(FLEKKSFonts.bodySemibold(15))
-                        .foregroundColor(session.isCompleted ? .textMuted : .textPrimary)
-                        .lineLimit(1)
-
-                    Text(session.focusArea)
-                        .font(FLEKKSFonts.body(12))
-                        .foregroundColor(.textSecondary)
-                }
-
-                Spacer()
-
-                // Duration & play button
-                HStack(spacing: 10) {
-                    Text("\(session.durationMinutes) min")
-                        .font(FLEKKSFonts.labelMedium)
-                        .foregroundColor(.textMuted)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                    if !session.isCompleted {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(FLEKKSGradients.accentGradient)
-                    }
-                }
+                .padding(16)
             }
-            .padding(16)
             .background(Color.bgCard)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
@@ -329,10 +414,8 @@ struct SessionRow: View {
                         lineWidth: 1
                     )
             )
-            .opacity(session.isCompleted ? 0.6 : 1.0)
         }
         .buttonStyle(.plain)
-        .disabled(session.isCompleted)
     }
 }
 

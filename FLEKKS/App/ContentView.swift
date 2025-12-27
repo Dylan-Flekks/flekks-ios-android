@@ -39,6 +39,13 @@ struct ContentView: View {
                     .zIndex(100)
             }
 
+            // Celebration overlay
+            if appState.showCelebration, let session = appState.completedSessionForCelebration {
+                CelebrationView(session: session, durationCompleted: session.durationMinutes * 60)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .zIndex(200)
+            }
+
             // Loading overlay during auth check
             if appState.isCheckingAuth {
                 ZStack {
