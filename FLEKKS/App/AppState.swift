@@ -1,4 +1,5 @@
 import SwiftUI
+import RevenueCat
 
 // MARK: - App Screens
 enum AppScreen: Equatable {
@@ -33,6 +34,11 @@ class AppState: ObservableObject {
     @Published var isCheckingAuth: Bool = true
     @Published var currentUser: User?
 
+    // MARK: - Subscription State
+    @Published var isSubscribed: Bool = false
+    @Published var showPaywall: Bool = false
+    @Published var showCustomerCenter: Bool = false
+
     // MARK: - Team State
     @Published var selectedTeam: Team?
     @Published var currentStreak: Int = 0
@@ -59,12 +65,26 @@ class AppState: ObservableObject {
     // MARK: - Services
     private let authService = AuthService.shared
     private let supabase = SupabaseService.shared
+    private let revenueCat = RevenueCatService.shared
 
     // MARK: - Init
     init() {
         loadPersistedSessionActions()
+        setupSubscriptionObserver()
         Task {
             await checkAuthState()
+        }
+    }
+
+    // MARK: - Subscription Observer
+    private func setupSubscriptionObserver() {
+        // Observe RevenueCat subscription changes
+        Task {
+            for await _ in revenueCat.$subscriptionStatus.values {
+                await MainActor.run {
+                    self.isSubscribed = self.revenueCat.isSubscribed
+                }
+            }
         }
     }
 
@@ -268,6 +288,46 @@ class AppState: ObservableObject {
         if let downloadedData = UserDefaults.standard.data(forKey: "downloadedSessions"),
            let downloaded = try? JSONDecoder().decode([UUID].self, from: downloadedData) {
             downloadedSessions = Set(downloaded)
+        }
+    }
+
+    // MARK: - Subscription Actions
+    func checkSubscriptionStatus() async {
+        await revenueCat.refreshCustomerInfo()
+        isSubscribed = revenueCat.isSubscribed
+    }
+
+    func hasProAccess() -> Bool {
+        return revenueCat.hasProEntitlement
+    }
+
+    func presentPaywall() {
+        showPaywall = true
+    }
+
+    func dismissPaywall() {
+        showPaywall = false
+    }
+
+    func presentCustomerCenter() {
+        showCustomerCenter = true
+    }
+
+    func dismissCustomerCenter() {
+        showCustomerCenter = false
+    }
+
+    func restorePurchases() async throws {
+        _ = try await revenueCat.restorePurchases()
+        isSubscribed = revenueCat.isSubscribed
+    }
+
+    /// Call this to gate premium features
+    func requiresSubscription(for feature: String, action: @escaping () -> Void) {
+        if isSubscribed {
+            action()
+        } else {
+            showPaywall = true
         }
     }
 

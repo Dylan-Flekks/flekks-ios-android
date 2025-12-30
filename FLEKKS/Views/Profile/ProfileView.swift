@@ -1,11 +1,16 @@
 import SwiftUI
+import RevenueCat
+import RevenueCatUI
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var revenueCat: RevenueCatService
 
     @State private var showSavedSessions = false
     @State private var showScheduledSessions = false
     @State private var showDownloads = false
+    @State private var showSubscription = false
+    @State private var showCustomerCenter = false
 
     private var userName: String {
         appState.currentUser?.name ?? "Alex"
@@ -98,12 +103,23 @@ struct ProfileView: View {
                             showDownloads = true
                         }
 
+                        // Subscription section
+                        SectionHeader(title: "SUBSCRIPTION")
+
+                        SubscriptionStatusBanner {
+                            if revenueCat.isSubscribed {
+                                showCustomerCenter = true
+                            } else {
+                                showSubscription = true
+                            }
+                        }
+                        .padding(.bottom, 10)
+
                         // Account section
                         SectionHeader(title: "ACCOUNT")
 
                         ProfileMenuItem(icon: "person.fill", title: "Edit Profile")
                         ProfileMenuItem(icon: "bell.fill", title: "Notifications")
-                        ProfileMenuItem(icon: "creditcard.fill", title: "Subscription")
                         ProfileMenuItem(icon: "gearshape.fill", title: "Preferences")
 
                         // Support section
@@ -153,6 +169,16 @@ struct ProfileView: View {
                     DownloadsView()
                         .environmentObject(appState)
                 }
+            }
+            // Subscription paywall sheet
+            .sheet(isPresented: $showSubscription) {
+                SubscriptionView()
+                    .environmentObject(appState)
+                    .environmentObject(revenueCat)
+            }
+            // Customer Center sheet (for managing subscription)
+            .sheet(isPresented: $showCustomerCenter) {
+                CustomerCenterView()
             }
         }
     }
@@ -284,4 +310,5 @@ struct ProfileMenuItemWithBadge: View {
 #Preview {
     ProfileView()
         .environmentObject(AppState())
+        .environmentObject(RevenueCatService.shared)
 }

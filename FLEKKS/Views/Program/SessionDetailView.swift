@@ -1,7 +1,10 @@
 import SwiftUI
+import RevenueCat
+import RevenueCatUI
 
 struct SessionDetailView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var revenueCat: RevenueCatService
     @StateObject private var dataService = DataService.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -13,6 +16,7 @@ struct SessionDetailView: View {
     @State private var isDownloading = false
     @State private var downloadProgress: Double = 0
     @State private var isGlowing = false
+    @State private var showPaywall = false
 
     private var isSaved: Bool {
         appState.savedSessions.contains(session.id)
@@ -350,8 +354,13 @@ struct SessionDetailView: View {
 
             VStack(spacing: 12) {
                 Button(action: {
-                    appState.startSession(session)
-                    dismiss()
+                    // Check subscription before starting session
+                    if revenueCat.isSubscribed {
+                        appState.startSession(session)
+                        dismiss()
+                    } else {
+                        showPaywall = true
+                    }
                 }) {
                     HStack(spacing: 10) {
                         Image(systemName: "play.fill")
@@ -362,7 +371,15 @@ struct SessionDetailView: View {
                 }
                 .buttonStyle(TealGlowButtonStyle())
 
-                if session.isCompleted {
+                if !revenueCat.isSubscribed {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11))
+                        Text("Premium required")
+                            .font(FLEKKSFonts.body(12))
+                    }
+                    .foregroundColor(.textMuted)
+                } else if session.isCompleted {
                     Text("You've already completed this session")
                         .font(FLEKKSFonts.body(12))
                         .foregroundColor(.textMuted)
@@ -371,6 +388,23 @@ struct SessionDetailView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 34)
             .background(Color.bgPrimary)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .onPurchaseCompleted { _ in
+                    showPaywall = false
+                    // After purchase, start the session
+                    appState.startSession(session)
+                    dismiss()
+                }
+                .onRestoreCompleted { _ in
+                    showPaywall = false
+                    // After restore, start the session if now subscribed
+                    if revenueCat.isSubscribed {
+                        appState.startSession(session)
+                        dismiss()
+                    }
+                }
         }
     }
 
@@ -571,4 +605,5 @@ struct ExercisePreviewRow: View {
         coach: Coach.dylanPeters
     )
     .environmentObject(AppState())
+    .environmentObject(RevenueCatService.shared)
 }

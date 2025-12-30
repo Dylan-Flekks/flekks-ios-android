@@ -87,4 +87,5 @@ struct TabBarItem: View {
 #Preview {
     TabBarView()
         .environmentObject(AppState())
+        .environmentObject(RevenueCatService.shared)
 }

@@ -1,106 +1,52 @@
 import SwiftUI
+import RevenueCat
+import RevenueCatUI
 
-// MARK: - Subscription Plan
-struct SubscriptionPlan: Identifiable {
-    let id = UUID()
-    let name: String
-    let monthlyPrice: Double
-    let billingPeriod: BillingPeriod
-    let features: [String]
-    let isPopular: Bool
-    let savingsPercentage: Int?
-
-    enum BillingPeriod: String {
-        case monthly = "month"
-        case yearly = "year"
-
-        var displayName: String {
-            switch self {
-            case .monthly: return "Monthly"
-            case .yearly: return "Annual"
-            }
-        }
-    }
-
-    var pricePerMonth: Double {
-        switch billingPeriod {
-        case .monthly: return monthlyPrice
-        case .yearly: return monthlyPrice / 12
-        }
-    }
-
-    var totalPrice: Double {
-        monthlyPrice
-    }
-
-    static let plans: [SubscriptionPlan] = [
-        SubscriptionPlan(
-            name: "Monthly",
-            monthlyPrice: 29.99,
-            billingPeriod: .monthly,
-            features: [
-                "Unlimited access to all sessions",
-                "Join any coach's team",
-                "Track your progress",
-                "Weekly challenges & badges",
-                "Team chat & community"
-            ],
-            isPopular: false,
-            savingsPercentage: nil
-        ),
-        SubscriptionPlan(
-            name: "Annual",
-            monthlyPrice: 199.99,
-            billingPeriod: .yearly,
-            features: [
-                "Everything in Monthly, plus:",
-                "Save 44% vs monthly",
-                "Priority coach support",
-                "Exclusive content drops",
-                "Streak protection (2x/month)"
-            ],
-            isPopular: true,
-            savingsPercentage: 44
-        )
-    ]
-}
-
-// MARK: - Subscription View
+// MARK: - Subscription View (Custom Paywall)
 struct SubscriptionView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var revenueCat: RevenueCatService
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedPlan: SubscriptionPlan = SubscriptionPlan.plans[1]
+    @State private var selectedPackage: Package?
     @State private var isProcessing = false
     @State private var showTerms = false
+    @State private var errorMessage: String?
+    @State private var showError = false
 
     var body: some View {
         ZStack {
             Color.bgPrimary.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Hero Section
-                    heroSection
+            if revenueCat.isLoading && revenueCat.offerings == nil {
+                loadingView
+            } else if let offering = revenueCat.currentOffering {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Hero Section
+                        heroSection
 
-                    // Plan Selection
-                    planSelectionSection
+                        // Plan Selection
+                        planSelectionSection(offering: offering)
 
-                    // Features List
-                    featuresSection
+                        // Features List
+                        featuresSection
 
-                    // Social Proof
-                    socialProofSection
+                        // Social Proof
+                        socialProofSection
 
-                    // CTA Button
-                    subscribeButton
+                        // CTA Button
+                        subscribeButton
 
-                    // Terms
-                    termsSection
+                        // Terms
+                        termsSection
 
-                    Spacer(minLength: 40)
+                        Spacer(minLength: 40)
+                    }
+                    .padding(20)
                 }
-                .padding(20)
+            } else {
+                errorView
             }
 
             // Close button
@@ -121,12 +67,66 @@ struct SubscriptionView: View {
                 Spacer()
             }
         }
+        .onAppear {
+            // Select yearly package by default
+            if selectedPackage == nil {
+                selectedPackage = revenueCat.yearlyPackage ?? revenueCat.monthlyPackage
+            }
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "An error occurred")
+        }
     }
 
+    // MARK: - Loading View
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.accent)
+
+            Text("Loading subscription options...")
+                .font(FLEKKSFonts.body(15))
+                .foregroundColor(.textSecondary)
+        }
+    }
+
+    // MARK: - Error View
+    private var errorView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.flekksOrange)
+
+            Text("Unable to load subscriptions")
+                .font(FLEKKSFonts.heading(20))
+                .foregroundColor(.textPrimary)
+
+            Text("Please check your connection and try again")
+                .font(FLEKKSFonts.body(15))
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button(action: {
+                Task {
+                    await revenueCat.fetchOfferings()
+                }
+            }) {
+                Text("Retry")
+                    .font(FLEKKSFonts.bodySemibold(16))
+            }
+            .buttonStyle(TealGlowButtonStyle())
+        }
+        .padding(40)
+    }
+
+    // MARK: - Hero Section
     private var heroSection: some View {
         VStack(spacing: 16) {
             // Logo
-            Text("FLĒKKS")
+            Text("FLEKKS")
                 .font(FLEKKSFonts.headingHeavy(32))
                 .foregroundStyle(FLEKKSGradients.accentGradientVibrant)
 
@@ -144,18 +144,32 @@ struct SubscriptionView: View {
         .padding(.top, 40)
     }
 
-    private var planSelectionSection: some View {
+    // MARK: - Plan Selection Section
+    private func planSelectionSection(offering: Offering) -> some View {
         VStack(spacing: 14) {
-            ForEach(SubscriptionPlan.plans) { plan in
-                PlanCard(
-                    plan: plan,
-                    isSelected: selectedPlan.id == plan.id,
-                    onSelect: { selectedPlan = plan }
+            // Yearly package (most popular)
+            if let yearlyPackage = offering.annual ?? offering.package(identifier: "yearly") {
+                RevenueCatPlanCard(
+                    package: yearlyPackage,
+                    isSelected: selectedPackage?.identifier == yearlyPackage.identifier,
+                    isPopular: true,
+                    onSelect: { selectedPackage = yearlyPackage }
+                )
+            }
+
+            // Monthly package
+            if let monthlyPackage = offering.monthly ?? offering.package(identifier: "monthly") {
+                RevenueCatPlanCard(
+                    package: monthlyPackage,
+                    isSelected: selectedPackage?.identifier == monthlyPackage.identifier,
+                    isPopular: false,
+                    onSelect: { selectedPackage = monthlyPackage }
                 )
             }
         }
     }
 
+    // MARK: - Features Section
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("What You Get")
@@ -179,6 +193,7 @@ struct SubscriptionView: View {
         )
     }
 
+    // MARK: - Social Proof Section
     private var socialProofSection: some View {
         VStack(spacing: 16) {
             // Stats
@@ -190,7 +205,7 @@ struct SubscriptionView: View {
 
             // Testimonial
             VStack(spacing: 12) {
-                Text("\"FLĒKKS changed my life. I went from barely touching my toes to doing full splits in 6 months!\"")
+                Text("\"FLEKKS changed my life. I went from barely touching my toes to doing full splits in 6 months!\"")
                     .font(FLEKKSFonts.body(14))
                     .foregroundColor(.textSecondary)
                     .italic()
@@ -232,6 +247,7 @@ struct SubscriptionView: View {
         )
     }
 
+    // MARK: - Subscribe Button
     private var subscribeButton: some View {
         VStack(spacing: 12) {
             Button(action: subscribe) {
@@ -240,20 +256,25 @@ struct SubscriptionView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .bgPrimary))
                     } else {
-                        Text("Start 7-Day Free Trial")
+                        Text(selectedPackage?.storeProduct.subscriptionPeriod?.hasFreeTrial == true
+                             ? "Start Free Trial"
+                             : "Subscribe Now")
                             .font(FLEKKSFonts.bodySemibold(16))
                     }
                 }
             }
             .buttonStyle(TealGlowButtonStyle())
-            .disabled(isProcessing)
+            .disabled(isProcessing || selectedPackage == nil)
 
-            Text("Then \(selectedPlan.billingPeriod == .yearly ? "$16.67/month" : "$29.99/month") • Cancel anytime")
-                .font(FLEKKSFonts.labelSmall)
-                .foregroundColor(.textMuted)
+            if let package = selectedPackage {
+                Text(subscriptionDescription(for: package))
+                    .font(FLEKKSFonts.labelSmall)
+                    .foregroundColor(.textMuted)
+            }
         }
     }
 
+    // MARK: - Terms Section
     private var termsSection: some View {
         VStack(spacing: 8) {
             Text("By subscribing, you agree to our")
@@ -273,7 +294,7 @@ struct SubscriptionView: View {
                 .font(FLEKKSFonts.labelSmall)
                 .foregroundColor(.accent)
 
-                Button("Restore Purchases") {
+                Button("Restore") {
                     restorePurchases()
                 }
                 .font(FLEKKSFonts.labelSmall)
@@ -282,32 +303,93 @@ struct SubscriptionView: View {
         }
     }
 
+    // MARK: - Helper Methods
+    private func subscriptionDescription(for package: Package) -> String {
+        let price = package.storeProduct.localizedPriceString
+
+        if package.packageType == .annual {
+            return "Then \(package.localizedPricePerMonth)/month billed annually (\(price)/year) - Cancel anytime"
+        } else {
+            return "Then \(price)/month - Cancel anytime"
+        }
+    }
+
     private func subscribe() {
+        guard let package = selectedPackage else { return }
+
         isProcessing = true
-        // Would integrate with StoreKit here
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            isProcessing = false
-            dismiss()
+
+        Task {
+            do {
+                _ = try await revenueCat.purchase(package: package)
+                await MainActor.run {
+                    isProcessing = false
+                    dismiss()
+                }
+            } catch RevenueCatError.cancelled {
+                await MainActor.run {
+                    isProcessing = false
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
         }
     }
 
     private func restorePurchases() {
-        // Would restore purchases via StoreKit
-        print("Restoring purchases")
+        isProcessing = true
+
+        Task {
+            do {
+                let customerInfo = try await revenueCat.restorePurchases()
+                await MainActor.run {
+                    isProcessing = false
+                    if customerInfo.entitlements[RevenueCatConfig.entitlementIdentifier]?.isActive == true {
+                        dismiss()
+                    } else {
+                        errorMessage = "No active subscription found"
+                        showError = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
     }
 }
 
-// MARK: - Plan Card
-struct PlanCard: View {
-    let plan: SubscriptionPlan
+// MARK: - RevenueCat Plan Card
+struct RevenueCatPlanCard: View {
+    let package: Package
     let isSelected: Bool
+    let isPopular: Bool
     let onSelect: () -> Void
+
+    private var isYearly: Bool {
+        package.packageType == .annual
+    }
+
+    private var savingsText: String? {
+        // Calculate savings compared to monthly
+        if isYearly {
+            return "Save 44%"
+        }
+        return nil
+    }
 
     var body: some View {
         Button(action: onSelect) {
             VStack(spacing: 0) {
                 // Popular badge
-                if plan.isPopular {
+                if isPopular {
                     HStack {
                         Spacer()
                         Text("MOST POPULAR")
@@ -339,12 +421,12 @@ struct PlanCard: View {
                     // Plan info
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
-                            Text(plan.name)
+                            Text(package.storeProduct.localizedTitle)
                                 .font(FLEKKSFonts.bodySemibold(16))
                                 .foregroundColor(.textPrimary)
 
-                            if let savings = plan.savingsPercentage {
-                                Text("Save \(savings)%")
+                            if let savings = savingsText {
+                                Text(savings)
                                     .font(FLEKKSFonts.labelSmall)
                                     .foregroundColor(.accent)
                                     .padding(.horizontal, 8)
@@ -354,8 +436,8 @@ struct PlanCard: View {
                             }
                         }
 
-                        if plan.billingPeriod == .yearly {
-                            Text("$16.67/month, billed annually")
+                        if isYearly {
+                            Text("\(package.localizedPricePerMonth)/month, billed annually")
                                 .font(FLEKKSFonts.labelMedium)
                                 .foregroundColor(.textMuted)
                         } else {
@@ -369,11 +451,11 @@ struct PlanCard: View {
 
                     // Price
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("$\(String(format: "%.2f", plan.totalPrice))")
+                        Text(package.storeProduct.localizedPriceString)
                             .font(FLEKKSFonts.headingHeavy(22))
                             .foregroundColor(.textPrimary)
 
-                        Text("/\(plan.billingPeriod.rawValue)")
+                        Text("/\(isYearly ? "year" : "month")")
                             .font(FLEKKSFonts.labelSmall)
                             .foregroundColor(.textMuted)
                     }
@@ -457,8 +539,8 @@ struct SocialProofStat: View {
     }
 }
 
-// MARK: - Paywall View (for feature-gating)
-struct PaywallView: View {
+// MARK: - Paywall Feature Gate View
+struct PaywallFeatureGateView: View {
     let feature: String
     var onSubscribe: () -> Void
     var onDismiss: () -> Void
@@ -488,7 +570,7 @@ struct PaywallView: View {
                     .font(FLEKKSFonts.heading(24))
                     .foregroundColor(.textPrimary)
 
-                Text("\(feature) requires a FLĒKKS subscription")
+                Text("\(feature) requires a FLEKKS subscription")
                     .font(FLEKKSFonts.body(15))
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
@@ -519,12 +601,11 @@ struct PaywallView: View {
 
 // MARK: - Subscription Status Banner
 struct SubscriptionStatusBanner: View {
-    let isSubscribed: Bool
-    let expiryDate: Date?
+    @EnvironmentObject var revenueCat: RevenueCatService
     var onManage: () -> Void
 
     private var daysRemaining: Int {
-        guard let expiry = expiryDate else { return 0 }
+        guard let expiry = revenueCat.expirationDate else { return 0 }
         return max(0, Calendar.current.dateComponents([.day], from: Date(), to: expiry).day ?? 0)
     }
 
@@ -534,18 +615,18 @@ struct SubscriptionStatusBanner: View {
                 // Icon
                 ZStack {
                     Circle()
-                        .fill(isSubscribed ? FLEKKSGradients.buttonGradient : LinearGradient(colors: [Color.bgElevated], startPoint: .top, endPoint: .bottom))
+                        .fill(revenueCat.isSubscribed ? FLEKKSGradients.buttonGradient : LinearGradient(colors: [Color.bgElevated], startPoint: .top, endPoint: .bottom))
                         .frame(width: 44, height: 44)
 
-                    Image(systemName: isSubscribed ? "checkmark.seal.fill" : "crown")
+                    Image(systemName: revenueCat.isSubscribed ? "checkmark.seal.fill" : "crown")
                         .font(.system(size: 20))
-                        .foregroundColor(isSubscribed ? .bgPrimary : .flekksOrange)
+                        .foregroundColor(revenueCat.isSubscribed ? .bgPrimary : .flekksOrange)
                 }
 
                 // Info
                 VStack(alignment: .leading, spacing: 4) {
-                    if isSubscribed {
-                        Text("FLĒKKS Premium")
+                    if revenueCat.isSubscribed {
+                        Text("FLEKKS Premium")
                             .font(FLEKKSFonts.bodySemibold(15))
                             .foregroundColor(.textPrimary)
 
@@ -567,7 +648,7 @@ struct SubscriptionStatusBanner: View {
 
                 Spacer()
 
-                if !isSubscribed {
+                if !revenueCat.isSubscribed {
                     Text("7 days free")
                         .font(FLEKKSFonts.labelMedium)
                         .foregroundColor(.accent)
@@ -586,14 +667,71 @@ struct SubscriptionStatusBanner: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(isSubscribed ? FLEKKSGradients.borderGradient : FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
+                    .stroke(revenueCat.isSubscribed ? FLEKKSGradients.borderGradient : FLEKKSGradients.borderGradientSubtle, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
     }
 }
 
+// MARK: - RevenueCat Native Paywall Wrapper
+/// Use this to show RevenueCat's built-in paywall UI
+struct RevenueCatPaywallSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        PaywallView()
+            .onPurchaseCompleted { _ in
+                dismiss()
+            }
+            .onRestoreCompleted { _ in
+                dismiss()
+            }
+    }
+}
+
+// MARK: - Customer Center Wrapper
+/// Shows RevenueCat's Customer Center for subscription management
+struct RevenueCatCustomerCenterSheet: View {
+    var body: some View {
+        CustomerCenterView()
+    }
+}
+
+// MARK: - Premium Content Modifier
+/// Use this modifier to gate premium content and automatically show paywall
+struct PremiumContentModifier: ViewModifier {
+    @EnvironmentObject var revenueCat: RevenueCatService
+    @State private var showPaywall = false
+
+    let featureName: String
+
+    func body(content: Content) -> some View {
+        Group {
+            if revenueCat.isSubscribed {
+                content
+            } else {
+                PaywallFeatureGateView(
+                    feature: featureName,
+                    onSubscribe: { showPaywall = true },
+                    onDismiss: { }
+                )
+            }
+        }
+        .sheet(isPresented: $showPaywall) {
+            RevenueCatPaywallSheet()
+        }
+    }
+}
+
+extension View {
+    func requiresPremium(feature: String) -> some View {
+        modifier(PremiumContentModifier(featureName: feature))
+    }
+}
+
 #Preview {
     SubscriptionView()
         .environmentObject(AppState())
+        .environmentObject(RevenueCatService.shared)
 }

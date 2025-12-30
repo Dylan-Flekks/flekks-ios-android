@@ -1,8 +1,12 @@
 import SwiftUI
+import RevenueCat
+import RevenueCatUI
 
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var revenueCat: RevenueCatService
     @StateObject private var dataService = DataService.shared
+    @State private var showPaywall = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -65,11 +69,16 @@ struct HomeView: View {
                         session: session,
                         coach: dataService.currentProgram?.coach,
                         isSaved: appState.savedSessions.contains(session.id),
+                        isSubscribed: revenueCat.isSubscribed,
                         onTap: {
                             appState.viewSessionDetail(session)
                         },
                         onStart: {
-                            appState.startSession(session)
+                            if revenueCat.isSubscribed {
+                                appState.startSession(session)
+                            } else {
+                                showPaywall = true
+                            }
                         },
                         onSave: {
                             appState.toggleSaveSession(session.id)
@@ -149,8 +158,18 @@ struct HomeView: View {
                         coach: dataService.currentProgram?.coach ?? appState.selectedTeam?.coach
                     )
                     .environmentObject(appState)
+                    .environmentObject(revenueCat)
                 }
             }
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+                .onPurchaseCompleted { _ in
+                    showPaywall = false
+                }
+                .onRestoreCompleted { _ in
+                    showPaywall = false
+                }
         }
     }
 }
@@ -160,6 +179,7 @@ struct TodaySessionCard: View {
     let session: Session
     let coach: Coach?
     var isSaved: Bool = false
+    var isSubscribed: Bool = true
     var onTap: (() -> Void)? = nil
     let onStart: () -> Void
     var onSave: (() -> Void)? = nil
@@ -267,9 +287,9 @@ struct TodaySessionCard: View {
                     HStack(spacing: 12) {
                         Button(action: onStart) {
                             HStack(spacing: 8) {
-                                Image(systemName: "play.fill")
+                                Image(systemName: isSubscribed ? "play.fill" : "lock.fill")
                                     .font(.system(size: 14, weight: .bold))
-                                Text("Start Session")
+                                Text(isSubscribed ? "Start Session" : "Unlock Premium")
                                     .font(FLEKKSFonts.bodySemibold(15))
                             }
                         }
@@ -560,4 +580,5 @@ struct TeamChatPreviewCard: View {
 #Preview {
     HomeView()
         .environmentObject(AppState())
+        .environmentObject(RevenueCatService.shared)
 }
